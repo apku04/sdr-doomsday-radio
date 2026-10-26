@@ -1,9 +1,9 @@
-"""SDR receiver HAT for Raspberry Pi 3B: panel ribbon, RTC, power monitor, switched LNA power.
+"""SDR receiver HAT for Raspberry Pi 3B: panel ribbon, RTC, switched LNA power, 5 V LED.
 
-Power path: J3 (5 V from the back-panel USB-C) -> F1 polyfuse -> Q1 reverse-polarity P-FET
--> R_SHUNT (INA219 current sense) -> Pi 5 V pins 2/4 (back-powering through the header).
-Do not also power the Pi through its micro-USB socket.
+The Pi is powered normally through its own micro-USB socket; the HAT takes 5 V and 3.3 V
+from the header (pins 2/4 and 1/17). No power monitor (removed on owner request 2026-10-26).
 """
+import json
 import sys
 from pathlib import Path
 
@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from lib.checks import run_drc
 from lib.circuit import NC, Circuit, Part
 from lib.contract import BCM_TO_HEADER, HEADER_POWER, PANEL_RIBBON, PI_BCM
-from lib.fab import add_gnd_pours, export_fab
+from lib.fab import add_gnd_pours, export_fab, fix_starved_thermals
 from lib.kicad_pcb import add_text, build_pcb, fit_footprint
 from lib.kicad_sch import run_erc, write_schematic
 from lib.route import autoroute
@@ -25,8 +25,7 @@ R0805 = "Resistor_SMD:R_0805_2012Metric"
 C0805 = "Capacitor_SMD:C_0805_2012Metric"
 SOT23 = "Package_TO_SOT_SMD:SOT-23"
 
-NET_WIDTHS = {"5V_IN": 1.0, "5V_F": 1.0, "5V_P": 1.0, "5V": 1.0, "GND": 0.5, "LNA_SW": 0.5, "LNA_5V": 0.5,
-              "3V3": 0.4}
+NET_WIDTHS = {"5V": 0.6, "GND": 0.5, "LNA_SW": 0.5, "LNA_5V": 0.5, "3V3": 0.4}
 
 
 def circuit():
@@ -42,29 +41,11 @@ def circuit():
                "PANEL", {str(k): v for k, v in PANEL_RIBBON.items()}, group="pi",
                note="2x10 shrouded box header, keyed"))
 
-    # power input and protection
-    c.add(Part("J3", "Connector:Screw_Terminal_01x02",
-               "TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-2_1x02_P5.00mm_Horizontal", "5V IN",
-               {"1": "5V_IN", "2": "GND"}, group="power", note="from back-panel USB-C (5.1k CC) module"))
-    c.add(Part("F1", "Device:Polyfuse", "Fuse:Fuse_1812_4532Metric", "3A hold", {"1": "5V_IN", "2": "5V_F"},
-               group="power", note="PTC 1812, 3 A hold / 6 V, e.g. Bourns MF-MSMF300"))
-    c.add(Part("Q1", "Transistor_FET:IRF7404", "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm", "AO4407A",
-               {"1": "5V_P", "2": "5V_P", "3": "5V_P", "4": "Q1_G", "5": "5V_F", "6": "5V_F", "7": "5V_F",
-                "8": "5V_F"}, group="power", note="P-FET reverse-polarity protection (AO4407A / IRF7404)"))
-    c.add(Part("R1", "Device:R", R0805, "10k", {"1": "Q1_G", "2": "GND"}, group="power"))
-    c.add(Part("R_SH", "Device:R", "Resistor_SMD:R_2512_6332Metric", "0.02R 1%",
-               {"1": "5V_P", "2": "5V"}, group="power", note="current shunt 20 mOhm 1 W 2512"))
-    c.add(Part("C1", "Device:C", C0805, "10u", {"1": "5V_IN", "2": "GND"}, group="power"))
+    # 5 V present indicator and bulk decoupling
     c.add(Part("C2", "Device:C", C0805, "10u", {"1": "5V", "2": "GND"}, group="power"))
     c.add(Part("D1", "Device:LED", "LED_SMD:LED_0805_2012Metric", "green 5V", {"1": "D1_K", "2": "5V"},
                group="power"))
     c.add(Part("R2", "Device:R", R0805, "1k", {"1": "D1_K", "2": "GND"}, group="power"))
-
-    # power monitor
-    c.add(Part("U1", "Sensor_Energy:INA219AxD", "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm", "INA219AID",
-               {"8": "5V_P", "7": "5V", "5": "3V3", "6": "GND", "3": "SDA", "4": "SCL", "1": "GND", "2": "GND"},
-               group="monitor", note="I2C 0x40"))
-    c.add(Part("C3", "Device:C", C0805, "100n", {"1": "3V3", "2": "GND"}, group="monitor"))
 
     # real-time clock
     rtc = {"2": "3V3", "14": "VBAT", "15": "SDA", "16": "SCL", "1": NC, "3": NC, "4": NC}
@@ -94,19 +75,11 @@ def placements():
     return {
         "J1": (jx, jy, jrot, "B"),
         "J2": (21.07, 50.5, 90, "F"),
-        "J3": (5.5, 33.0, 90, "F"),
-        "C1": (11.0, 41.0, 0, "F"),
-        "F1": (15.0, 33.5, 90, "F"),
-        "Q1": (13.5, 23.0, 90, "F"),
-        "R1": (19.5, 27.5, 90, "F"),
-        "R_SH": (14.0, 12.5, 0, "F"),
-        "C2": (7.0, 9.5, 90, "F"),
-        "U1": (24.0, 16.0, 0, "F"),
-        "C3": (24.0, 10.5, 0, "F"),
-        "D1": (7.0, 44.0, 90, "F"),
-        "R2": (7.0, 48.0, 90, "F"),
-        "U2": (27.0, 33.0, 0, "F"),
-        "C4": (27.0, 25.5, 0, "F"),
+        "C2": (10.0, 10.0, 90, "F"),
+        "D1": (7.0, 40.0, 90, "F"),
+        "R2": (7.0, 44.0, 90, "F"),
+        "U2": (20.0, 24.0, 0, "F"),
+        "C4": (20.0, 16.5, 0, "F"),
         "BT1": (47.5, 22.0, 0, "F"),
         "R3": (40.5, 37.5, 0, "F"),
         "R4": (40.5, 40.5, 0, "F"),
@@ -118,10 +91,9 @@ def placements():
     }
 
 
-LABELS = [("SDR HAT v1", 32.5, 9.0, "F", 1.5, 0), ("5V IN", 5.5, 25.0, "F", 1.0, 0),
-          ("+", 10.5, 33.0, "F", 1.4, 0), ("-", 10.5, 28.0, "F", 1.4, 0),
+LABELS = [("SDR HAT v1", 32.5, 9.0, "F", 1.5, 0), ("5V", 7.0, 36.5, "F", 1.0, 0),
           ("PANEL", 32.5, 43.0, "F", 1.0, 0), ("LNA 5V", 59.0, 46.5, "F", 0.9, 0),
-          ("power from J3 only, not micro-USB", 32.5, 55.3, "B", 1.0, 0)]
+          ("power the Pi via its micro-USB", 32.5, 55.3, "B", 1.0, 0)]
 
 
 def build(outdir=Path(__file__).parent / "out"):
@@ -135,13 +107,19 @@ def build(outdir=Path(__file__).parent / "out"):
     autoroute(pcb, c, net_widths=NET_WIDTHS)
     add_text(pcb, LABELS)
     add_gnd_pours(pcb, "GND", solid_pads=[("BT1", "2")])
+    fix_starved_thermals(pcb)
     res = {"sch": sch, "pcb": pcb, "erc": run_erc(sch), "drc": run_drc(pcb)}
     res["fab"] = export_fab(c, pcb, sch, outdir / "fab")
     return res
 
 
 if __name__ == "__main__":
-    r = build()
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out", default=str(Path(__file__).parent / "out"))
+    a = ap.parse_args()
+    r = build(a.out)
+    (Path(a.out) / "result.json").write_text(json.dumps({k: str(v) if not isinstance(v, list) else v
+                                                         for k, v in r.items() if k != "fab"}, indent=1))
     print("ERC:", r["erc"] or "clean")
     print("DRC:", r["drc"] or "clean")
-    print("fab:", r["fab"])

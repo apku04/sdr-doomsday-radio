@@ -1,0 +1,46 @@
+** Drc report for sdr-hat.kicad_pcb **
+** Created on 2026-10-26T20:02:11+0100 **
+
+** Found 8 DRC violations **
+[silk_edge_clearance]: Silkscreen clipped by board edge
+    Rule: board setup constraints silk; warning
+    @(2,0000 mm, 0,0000 mm): Segment on Edge.Cuts
+    @(61,5000 mm, -0,1500 mm): Reference field of H2
+[silk_edge_clearance]: Silkscreen clipped by board edge
+    Rule: board setup constraints silk; warning
+    @(2,0000 mm, 0,0000 mm): Segment on Edge.Cuts
+    @(3,5000 mm, -0,1500 mm): Reference field of H1
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(26,7387 mm, 26,2350 mm): Segment of C4 on F.Silkscreen
+    @(27,0000 mm, 26,9000 mm): Reference field of U2
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(55,9100 mm, 40,6021 mm): Segment of F2 on F.Silkscreen
+    @(55,9500 mm, 40,2500 mm): Reference field of J4
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(40,5000 mm, 38,8500 mm): Reference field of R4
+    @(40,2729 mm, 38,2350 mm): Segment of R3 on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(10,5000 mm, 28,0000 mm): PCB text '-' on F.Silkscreen
+    @(10,2200 mm, 25,3800 mm): Segment of J3 on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(10,2200 mm, 33,0000 mm): Polygon of J3 on F.Silkscreen
+    @(10,5000 mm, 33,0000 mm): PCB text '+' on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(5,5000 mm, 25,0000 mm): PCB text '5V IN' on F.Silkscreen
+    @(0,1800 mm, 25,3800 mm): Segment of J3 on F.Silkscreen
+
+** Found 1 unconnected pads **
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(-0,0500 mm, -0,0500 mm): Zone [GND] on F.Cu, priority 0
+    @(-0,0500 mm, -0,0500 mm): Zone [GND] on F.Cu, priority 0
+
+** Found 0 Footprint errors **
+
+** End of Report **

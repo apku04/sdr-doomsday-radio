@@ -7,8 +7,7 @@ from lib.contract import BCM_TO_HEADER, HEADER_POWER, PANEL_RIBBON, PI_BCM
 @pytest.fixture(scope="module")
 def built(tmp_path_factory):
     from hat import hat
-    out = tmp_path_factory.mktemp("hat")
-    return hat.build(out), hat
+    return hat.build(tmp_path_factory.mktemp("hat")), hat
 
 
 def test_hat_contract():

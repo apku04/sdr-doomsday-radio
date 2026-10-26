@@ -15,6 +15,7 @@ class Part:
     lcsc: str = ""
     group: str = ""      # schematic grouping / layout hint
     note: str = ""
+    pad_nets: dict = field(default_factory=dict)   # footprint-only pads (e.g. mounting lugs) -> net
     uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
 
 
@@ -33,11 +34,12 @@ class Circuit:
     def part(self, ref):
         return next(p for p in self.parts if p.ref == ref)
 
-    def nets(self):
-        """net name -> sorted list of (ref, pin); NC pins excluded."""
+    def nets(self, include_pads=False):
+        """net name -> sorted list of (ref, pin); NC pins excluded. include_pads adds pad_nets."""
         out = {}
         for p in self.parts:
-            for pin, net in p.pins.items():
+            items = list(p.pins.items()) + (list(p.pad_nets.items()) if include_pads else [])
+            for pin, net in items:
                 if net is not NC:
                     out.setdefault(net, []).append((p.ref, str(pin)))
         return {n: sorted(v) for n, v in sorted(out.items())}

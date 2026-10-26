@@ -1,0 +1,24 @@
+{
+  "_doc": "Front-panel layout, mm, origin = panel top-left as seen from the front. From the approved v4 mockup.",
+  "panel": {"w": 160, "h": 90, "t": 3},
+  "controls": {
+    "Volume":  {"kind": "encoder", "x": 19,  "y": 24, "cap": 20, "label": "VOLUME",  "sub": "push mute", "ref": "ENC1"},
+    "Squelch": {"kind": "encoder", "x": 19,  "y": 57, "cap": 20, "label": "SQUELCH", "sub": "push mon",  "ref": "ENC2"},
+    "Tune":    {"kind": "encoder", "x": 104, "y": 32, "cap": 30, "label": "TUNE",    "sub": "push stay / step", "ref": "ENC3"},
+    "Menu":    {"kind": "encoder", "x": 141, "y": 24, "cap": 20, "label": "MENU",    "sub": "push select", "ref": "ENC4"},
+    "Scan":    {"kind": "button", "x": 46,  "y": 78, "cap": 11, "label": "SCAN",    "ref": "SW1"},
+    "Manual":  {"kind": "button", "x": 62,  "y": 78, "cap": 11, "label": "MANUAL",  "ref": "SW2"},
+    "Q1":      {"kind": "button", "x": 96,  "y": 70, "cap": 11, "label": "DR P4",   "ref": "SW3"},
+    "Q2":      {"kind": "button", "x": 114, "y": 70, "cap": 11, "label": "RANDERS", "ref": "SW4"},
+    "Back":    {"kind": "button", "x": 141, "y": 52, "cap": 11, "label": "BACK",    "ref": "SW5"},
+    "LED_PWR":  {"kind": "led", "x": 45, "y": 52, "label": "PWR",   "ref": "D1"},
+    "LED_SCAN": {"kind": "led", "x": 53, "y": 52, "label": "SCAN",  "ref": "D2"},
+    "LED_SIG":  {"kind": "led", "x": 61, "y": 52, "label": "SIG",   "ref": "D3"},
+    "LED_MAN":  {"kind": "led", "x": 69, "y": 52, "label": "MAN",   "ref": "D4"},
+    "LED_2M":   {"kind": "led", "x": 49, "y": 62, "label": "2 m",   "ref": "D5"},
+    "LED_70CM": {"kind": "led", "x": 57, "y": 62, "label": "70 cm", "ref": "D6"},
+    "LED_FM":   {"kind": "led", "x": 65, "y": 62, "label": "FM",    "ref": "D7"},
+    "OLED":    {"kind": "oled", "x": 57, "y": 30, "window": [30, 30], "ref": ""},
+    "Phones":  {"kind": "jack", "x": 10, "y": 81, "hole": 6.2, "label": "PHONES", "ref": ""}
+  }
+}

@@ -15,6 +15,7 @@ import pcbnew
 
 from .kicad_pcb import RULES, mm
 
+LAST_REPORT = []   # (pad, outcome) for pour-net pads not joined by a direct route, last run only
 FREE = -1
 KEEPOUT = -2
 DIRS = [(1, 0, 1.0), (-1, 0, 1.0), (0, 1, 1.0), (0, -1, 1.0),
@@ -100,8 +101,8 @@ def _edge_keepout(g, clearance):
             arr[:k, :] = KEEPOUT; arr[-k:, :] = KEEPOUT; arr[:, :k] = KEEPOUT; arr[:, -k:] = KEEPOUT
 
 
-def _astar(g, net, sources, goal_pt, blocked, via_blocked, via_cost):
-    """sources: [(layer, r, c)]. Goal: any anchor cell of `net` not in the source pad."""
+def _astar(g, net, sources, goal_pt, blocked, via_blocked, via_cost, goal_fn=None, allow_vias=True):
+    """sources: [(layer, r, c)]. Goal: any anchor cell of `net` not in the source pad (or goal_fn)."""
     h_, w_ = g.h, g.w
     src_set = set(sources)
     gr, gc = goal_pt
@@ -117,7 +118,7 @@ def _astar(g, net, sources, goal_pt, blocked, via_blocked, via_cost):
         if d > dist.get(st, 1e18):
             continue
         L, r, c = st
-        if st not in src_set and anchors[L][r, c] == net:
+        if st not in src_set and (goal_fn(L, r, c) if goal_fn else anchors[L][r, c] == net):
             path = [st]
             while path[-1] in prev:
                 path.append(prev[path[-1]])
@@ -134,13 +135,37 @@ def _astar(g, net, sources, goal_pt, blocked, via_blocked, via_cost):
             if nd < dist.get(ns, 1e18):
                 dist[ns] = nd; prev[ns] = st
                 heapq.heappush(heap, (nd + math.hypot(nr - gr, nc - gc), nd, ns))
-        if not via_blocked[r, c]:
+        if allow_vias and not via_blocked[r, c]:
             ns = (1 - L, r, c)
             nd = d + via_cost
             if not blocked[1 - L][r, c] and nd < dist.get(ns, 1e18):
                 dist[ns] = nd; prev[ns] = st
                 heapq.heappush(heap, (nd + math.hypot(r - gr, c - gc), nd, ns))
     return None
+
+
+def _via_escape(g, net, sources, pad_entry, blocked, via_blk, max_cells=40):
+    """Short track from a pad to the nearest spot where a via fits (the via lands in the other
+    layer's pour). Used for pour-net pads the router cannot join directly."""
+    own = {(r, c) for r, c in pad_entry[2]}
+    def goal(L, r, c):
+        return (r, c) not in own and not via_blk[r, c] and not blocked[1 - L][r, c]
+    centre = sources[0][1:]
+    path = _astar(g, net, sources, centre, blocked, via_blk, 0.0, goal_fn=goal, allow_vias=False)
+    if path is None or len(path) > max_cells:
+        return None
+    L, r, c = path[-1]
+    return path + [(1 - L, r, c)]
+
+
+def _via_in_pad(cells, layer, via_blk):
+    """A via at the pad cell farthest from any via-blocked cell (centre of a big pad)."""
+    free = [(r, c) for r, c in cells if not via_blk[r, c]]
+    if not free:
+        return None
+    rs = sorted(free)
+    r, c = rs[len(rs) // 2]
+    return [(layer, r, c), (1 - layer, r, c)]
 
 
 def _simplify(path):
@@ -195,6 +220,7 @@ def _route_once(pcb_path, pitch=0.1, rules=RULES, net_widths=None, order=None, v
     Nets in pour_nets are routed where possible; pads that cannot be reached are left to the
     copper pour (DRC's unconnected check is the gate for those)."""
     board = pcbnew.LoadBoard(str(pcb_path))
+    LAST_REPORT.clear()
     net_widths = net_widths or {}
     g = Grid(board, pitch)
     _edge_keepout(g, rules["edge_clear"])
@@ -204,13 +230,52 @@ def _route_once(pcb_path, pitch=0.1, rules=RULES, net_widths=None, order=None, v
     for pad, code, on, cells in pads:
         by_net.setdefault(code, []).append((pad, on, cells))
     names = {code: board.FindNet(code).GetNetname() for code in by_net}
-    nets = sorted(by_net, key=lambda n: (-(net_widths.get(names[n], rules["track"])), len(by_net[n])))
+    # widest first, but pour nets (GND) last: the pour connects them, and routing them early walls in pins
+    nets = sorted(by_net, key=lambda n: (names[n] in pour_nets, -(net_widths.get(names[n], rules["track"])),
+                                         len(by_net[n])))
     if order:
         nets.sort(key=lambda n: order.index(names[n]) if names[n] in order else len(order))
     if first_nets:
         nets.sort(key=lambda n: first_nets.index(names[n]) if names[n] in first_nets else len(first_nets))
     via_r = rules["via_d"] / 2
     failures = []
+    escaped = set()
+    # SMD pads of pour nets get their own via to the other layer's pour first, while there is room
+    for net in nets:
+        if names[net] not in pour_nets:
+            continue
+        width = net_widths.get(names[net], rules["track"])
+        others = [(g.copper[i] != FREE) & (g.copper[i] != net) for i in range(2)]
+        margin = 1.5 * pitch
+        blocked = [_dilate(others[i], (rules["clearance"] + width / 2 + margin) / pitch) for i in range(2)]
+        via_blk = _dilate(others[0] | others[1], (rules["clearance"] + via_r + margin) / pitch)
+        own_pads = np.zeros((g.h, g.w), bool)
+        for pad, on, cells in by_net[net]:
+            for r, c in cells:
+                own_pads[r, c] = True
+        via_blk |= _dilate(own_pads, (via_r + 0.15) / pitch)
+        for entry in by_net[net]:
+            pad, on, cells = entry
+            if len(on) == 2:
+                continue  # through-hole: the pour reaches it on both layers
+            q = pad.GetPosition()
+            src = [(on[0], *g.cell(pcbnew.ToMM(q.x), pcbnew.ToMM(q.y)))]
+            path = _via_escape(g, net, src, entry, blocked, via_blk)
+            if path is None and len(cells) * pitch * pitch > 10.0:
+                # large contact pad (e.g. coin-cell holder): a via inside the pad is harmless
+                inside = via_blk.copy()
+                for r, c in cells:
+                    inside[r, c] = _dilate(others[0] | others[1], (rules["clearance"] + via_r + margin) / pitch)[r, c]
+                path = _via_in_pad(cells, on[0], inside)
+            ref = f"{pad.GetParentFootprint().GetReference()}.{pad.GetNumber()}"
+            if path:
+                _commit(board, g, net, path, width, via_r, pad, blocked, via_blk, rules, pitch)
+                escaped.add(ref)
+                # later escapes must keep clear of this via
+                for i in range(2):
+                    others[i] = (g.copper[i] != FREE) & (g.copper[i] != net)
+                via_blk |= _dilate(g.copper[0] == net, (rules["clearance"] + via_r) / pitch) & ~own_pads
+            LAST_REPORT.append((ref, "own via" if path else "no room for via"))
     for net in nets:
         name = names[net]
         if name in skip_nets or len(by_net[net]) < 2:
@@ -245,9 +310,15 @@ def _route_once(pcb_path, pitch=0.1, rules=RULES, net_widths=None, order=None, v
             centre = g.cell(*pc(best))
             sources = [(L, *centre) for L in best[1]]
             path = _astar(g, net, sources, g.cell(*pc(target)), blocked, via_blk, via_cost)
-            if path is None:
-                if name in pour_nets:
+            ref = f"{best[0].GetParentFootprint().GetReference()}.{best[0].GetNumber()}"
+            if path is None and name in pour_nets and ref in escaped:
+                continue  # already has its own via to the pour
+            if path is None and name in pour_nets:
+                path = _via_escape(g, net, sources, best, blocked, via_blk) if len(best[1]) == 1 else None
+                LAST_REPORT.append((ref, "via-escape" if path else "left to pour"))
+                if path is None:
                     continue
+            if path is None:
                 failures.append(f"{name}: {best[0].GetParentFootprint().GetReference()}.{best[0].GetNumber()}")
                 continue
             _commit(board, g, net, path, width, via_r, best[0], blocked, via_blk, rules, pitch)

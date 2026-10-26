@@ -40,9 +40,11 @@ def add_gnd_pours(pcb_path, net="GND", clearance=0.3, min_width=0.25, pitch_mm=4
                      (bb.GetRight(), bb.GetBottom()), (bb.GetLeft(), bb.GetBottom())):
             ol.Append(x, y)
         board.Add(z)
+    board.BuildConnectivity()
     filler = pcbnew.ZONE_FILLER(board)
     filler.Fill(board.Zones())
     _stitch(board, netinfo, [z for z in board.Zones() if z.GetNetname() == net], pitch_mm)
+    board.BuildConnectivity()
     filler.Fill(board.Zones())
     pcbnew.SaveBoard(str(pcb_path), board)
 
@@ -69,6 +71,27 @@ def _stitch(board, netinfo, zones, pitch_mm, via_d=0.6, drill=0.3):
                 board.Add(v)
             y += pitch_mm
         x += pitch_mm
+
+
+def fix_starved_thermals(pcb_path, rounds=3):
+    """Pads DRC reports as starved thermal reliefs get a solid zone connection, then refill."""
+    import re
+    from .checks import run_drc
+    for _ in range(rounds):
+        starved = [p for p in run_drc(pcb_path) if "starved_thermal" in p]
+        if not starved:
+            return
+        board = pcbnew.LoadBoard(str(pcb_path))
+        for msg in starved:
+            m = re.search(r"[Pp]ad (\S+) \[[^\]]*\] of ([^\s\]]+)", msg)
+            if m:
+                num, ref = m.group(1), m.group(2)
+                for pad in board.FindFootprintByReference(ref).Pads():
+                    if pad.GetNumber() == num:
+                        pad.SetLocalZoneConnection(pcbnew.ZONE_CONNECTION_FULL)
+        board.BuildConnectivity()
+        pcbnew.ZONE_FILLER(board).Fill(board.Zones())
+        pcbnew.SaveBoard(str(pcb_path), board)
 
 
 GERBER_LAYERS = "F.Cu,B.Cu,F.Paste,B.Paste,F.SilkS,B.SilkS,F.Mask,B.Mask,Edge.Cuts"

@@ -1,0 +1,219 @@
+{
+    "$schema": "https://schemas.kicad.org/drc.v1.json",
+    "coordinate_units": "mm",
+    "date": "2026-10-26T19:58:42+0100",
+    "kicad_version": "9.0.7",
+    "schematic_parity": [],
+    "source": "sdr-hat.kicad_pcb",
+    "unconnected_items": [
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Zone [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": -0.05,
+                        "y": -0.05
+                    },
+                    "uuid": "e7df86eb-9ef1-4154-8f87-ae37594bdd44"
+                },
+                {
+                    "description": "Zone [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": -0.05,
+                        "y": -0.05
+                    },
+                    "uuid": "e7df86eb-9ef1-4154-8f87-ae37594bdd44"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        }
+    ],
+    "violations": [
+        {
+            "description": "Silkscreen clipped by board edge",
+            "items": [
+                {
+                    "description": "Segment on Edge.Cuts",
+                    "pos": {
+                        "x": 2.0,
+                        "y": 0.0
+                    },
+                    "uuid": "d670a539-78bc-42f8-933f-3fb06f84c5e1"
+                },
+                {
+                    "description": "Reference field of H1",
+                    "pos": {
+                        "x": 3.5,
+                        "y": -0.15
+                    },
+                    "uuid": "f15bef5d-0fda-40c9-a382-e389df575ec4"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_edge_clearance"
+        },
+        {
+            "description": "Silkscreen clipped by board edge",
+            "items": [
+                {
+                    "description": "Segment on Edge.Cuts",
+                    "pos": {
+                        "x": 2.0,
+                        "y": 0.0
+                    },
+                    "uuid": "d670a539-78bc-42f8-933f-3fb06f84c5e1"
+                },
+                {
+                    "description": "Reference field of H2",
+                    "pos": {
+                        "x": 61.5,
+                        "y": -0.15
+                    },
+                    "uuid": "ae26872e-d319-4aa6-9447-3447dce44393"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_edge_clearance"
+        },
+        {
+            "description": "Silkscreen overlap",
+            "items": [
+                {
+                    "description": "Segment of C4 on F.Silkscreen",
+                    "pos": {
+                        "x": 26.738748,
+                        "y": 26.235
+                    },
+                    "uuid": "9e59e66d-0998-4bf9-ab85-5378c481b165"
+                },
+                {
+                    "description": "Reference field of U2",
+                    "pos": {
+                        "x": 27.0,
+                        "y": 26.9
+                    },
+                    "uuid": "bae819b9-2638-499e-8b97-4a6c476cbfbd"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen overlap",
+            "items": [
+                {
+                    "description": "PCB text '-' on F.Silkscreen",
+                    "pos": {
+                        "x": 10.5,
+                        "y": 28.0
+                    },
+                    "uuid": "2414e90a-d3f6-40b3-91b1-6a6e7a85d363"
+                },
+                {
+                    "description": "Segment of J3 on F.Silkscreen",
+                    "pos": {
+                        "x": 10.22,
+                        "y": 25.38
+                    },
+                    "uuid": "fe064c3c-c778-455d-bb2a-9c2663ff6e2c"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen overlap",
+            "items": [
+                {
+                    "description": "Segment of R3 on F.Silkscreen",
+                    "pos": {
+                        "x": 40.272936,
+                        "y": 38.235
+                    },
+                    "uuid": "1a8b4583-bdd9-4797-8f7a-f67a2fae2e6f"
+                },
+                {
+                    "description": "Reference field of R4",
+                    "pos": {
+                        "x": 40.5,
+                        "y": 38.85
+                    },
+                    "uuid": "69afa4d1-6708-4385-adb6-bff32355c3c7"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen overlap",
+            "items": [
+                {
+                    "description": "Segment of F2 on F.Silkscreen",
+                    "pos": {
+                        "x": 55.91,
+                        "y": 40.602064
+                    },
+                    "uuid": "64da0fee-2e16-49d4-9f6e-28262012dd29"
+                },
+                {
+                    "description": "Reference field of J4",
+                    "pos": {
+                        "x": 55.95,
+                        "y": 40.25
+                    },
+                    "uuid": "91dd580a-6cb7-40d8-8afc-38e9d41cc6c1"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen overlap",
+            "items": [
+                {
+                    "description": "Segment of J3 on F.Silkscreen",
+                    "pos": {
+                        "x": 0.18,
+                        "y": 25.38
+                    },
+                    "uuid": "28996e97-284d-4260-b01b-75de09b84a22"
+                },
+                {
+                    "description": "PCB text '5V IN' on F.Silkscreen",
+                    "pos": {
+                        "x": 5.5,
+                        "y": 25.0
+                    },
+                    "uuid": "c859adde-db1c-41b6-a24d-dce0753a2fc5"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen overlap",
+            "items": [
+                {
+                    "description": "Polygon of J3 on F.Silkscreen",
+                    "pos": {
+                        "x": 10.22,
+                        "y": 33.0
+                    },
+                    "uuid": "570e0044-e647-4c94-9de7-dfc35f20727d"
+                },
+                {
+                    "description": "PCB text '+' on F.Silkscreen",
+                    "pos": {
+                        "x": 10.5,
+                        "y": 33.0
+                    },
+                    "uuid": "d50158f2-610e-4272-ad33-f9ab9e35729c"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        }
+    ]
+}

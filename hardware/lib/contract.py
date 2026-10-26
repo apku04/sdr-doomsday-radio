@@ -21,7 +21,7 @@ BCM_TO_HEADER = {2: 3, 3: 5, 4: 7, 14: 8, 15: 10, 17: 11, 18: 12, 27: 13, 22: 15
 HEADER_POWER = {1: "3V3", 17: "3V3", 2: "5V", 4: "5V",
                 6: "GND", 9: "GND", 14: "GND", 20: "GND", 25: "GND", 30: "GND", 34: "GND", 39: "GND"}
 
-I2C = {"MCP23017": 0x20, "SH1107": 0x3C, "INA219": 0x40, "DS3231": 0x68}
+I2C = {"MCP23017": 0x20, "SH1107": 0x3C, "DS3231": 0x68}
 
 # MCP23017 port bit -> function. GPA7/GPB7 are output-only on current silicon.
 MCP_PINS = {

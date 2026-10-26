@@ -58,10 +58,16 @@ def build_pcb(circuit, size, placements, holes, path, rules=RULES, net_widths=No
     nc.SetViaDiameter(mm(rules["via_d"])); nc.SetViaDrill(mm(rules["via_drill"]))
     tb = board.GetTitleBlock(); tb.SetTitle(title or circuit.name)
 
-    w, h = size
-    _outline(board, w, h)
+    if isinstance(size, list):   # polygon outline [(x, y), ...]
+        for (x0, y0), (x1, y1) in zip(size, size[1:] + size[:1]):
+            s = pcbnew.PCB_SHAPE(board, pcbnew.SHAPE_T_SEGMENT)
+            s.SetStart(pcbnew.VECTOR2I(mm(x0), mm(y0))); s.SetEnd(pcbnew.VECTOR2I(mm(x1), mm(y1)))
+            s.SetLayer(pcbnew.Edge_Cuts); s.SetWidth(mm(0.1)); board.Add(s)
+    else:
+        w, h = size
+        _outline(board, w, h)
     nets = {}
-    for name in circuit.nets():
+    for name in circuit.nets(include_pads=True):
         ni = pcbnew.NETINFO_ITEM(board, name)
         board.Add(ni)
         nets[name] = ni
@@ -80,7 +86,7 @@ def build_pcb(circuit, size, placements, holes, path, rules=RULES, net_widths=No
         if side == "B":
             fp.Flip(fp.GetPosition(), pcbnew.FLIP_DIRECTION_TOP_BOTTOM)
         for pad in fp.Pads():
-            net = part.pins.get(pad.GetNumber(), NC)
+            net = part.pins.get(pad.GetNumber(), part.pad_nets.get(pad.GetNumber(), NC))
             if net is not NC:
                 pad.SetNet(nets[net])
 
