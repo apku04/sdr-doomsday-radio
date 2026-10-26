@@ -4,3 +4,5 @@ __pycache__/
 *.pyc
 hardware/**/*-backups/
 hardware/**/fp-info-cache
+hardware/.pytest_tmp/
+.pytest_cache/
