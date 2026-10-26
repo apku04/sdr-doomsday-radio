@@ -39,7 +39,8 @@ def test_holes_match_positions():
 
 def test_parts_fit_p1s_and_are_closed():
     stls = sorted(OUT.glob("*.stl"))
-    assert {"panel.stl", "panel_labels.stl", "box.stl", "oled_clamp.stl"} <= {p.name for p in stls}
+    assert {"panel.stl", "panel_labels.stl", "tray.stl", "lid.stl", "oled_clamp.stl"} <= {p.name for p in stls}
+    assert "box.stl" not in {p.name for p in stls}
     for p in stls:
         size, open_edges = stl_bbox_and_edges(p)
         assert max(size) <= P1S - 6, (p.name, size)
@@ -49,8 +50,11 @@ def test_parts_fit_p1s_and_are_closed():
 def test_panel_and_box_sizes():
     size, _ = stl_bbox_and_edges(OUT / "panel.stl")
     assert sorted(round(s, 1) for s in size[:2]) == [90.0, 160.0]
-    size, _ = stl_bbox_and_edges(OUT / "box.stl")
-    assert round(size[0], 1) == 166.4 and round(size[1], 1) == 96.4
+    tray, _ = stl_bbox_and_edges(OUT / "tray.stl")      # printed on its bottom: X width, Y depth, Z height
+    lid, _ = stl_bbox_and_edges(OUT / "lid.stl")        # printed upside down
+    assert round(tray[0], 1) == 166.4 and round(tray[1], 1) == 130.0
+    assert round(lid[0], 1) == 166.4 and round(lid[1], 1) == 130.0
+    assert round(tray[2] + 3.0, 1) == 96.4               # tray + 3 mm lid plate = box height
 
 
 if __name__ == "__main__":

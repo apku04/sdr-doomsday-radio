@@ -6,7 +6,8 @@ Outputs (mechanical/out/), all already in print orientation for a Bambu Lab P1S:
   panel_labels.stl  label inlays, same origin as panel.stl: in Bambu Studio add as a part of the
                     panel and give it a second filament (AMS); without AMS skip it = engraved text
   oled_clamp.stl    bar that clamps the OLED module into its pocket (2 x M2.5 x 8 screws)
-  box.stl           enclosure, printed standing on its BACK wall, no supports
+  tray.stl          enclosure without its top, printed standing on its bottom, no supports
+  lid.stl           lid (4 x M2.5 screws into the tray columns), printed upside down
   panel_holes.json  control centres actually cut (checked against layout.json by the tests)
 
 Coordinates while modelling ("front view"): X right, Y up, Z out of the front face.
@@ -170,65 +171,112 @@ def oled_clamp():
     return bar
 
 
-# ---------------------------------------------------------------- box
-def build_box():
-    outer = box(BOX_W, BOX_H, BOX_D, 0, 0, -BOX_D)
-    outer = outer.makeFillet(3.0, [e for e in outer.Edges if abs(e.tangentAt(e.FirstParameter).z) > 0.99])
-    shell = outer.cut(box(BOX_W - 2 * WALL, BOX_H - 2 * WALL, BOX_D, WALL, WALL, -(BOX_D - WALL)))
-    adds, cuts = [], []
-    ox, oy = WALL + FIT, WALL + FIT          # panel origin in box XY
+# ---------------------------------------------------------------- box = tray + lid
+LID_T = 3.0
+TRAY_H = BOX_H - LID_T            # tray walls stop under the lid plate
+LIP = (1.6, 4.0)                  # lid locating lip: thickness, depth
+LID_COLUMNS = [(6.5, -(BOX_D - 6.5)), (BOX_W - 6.5, -(BOX_D - 6.5)), (6.5, -65.0), (BOX_W - 6.5, -65.0)]  # (X, Z)
+PI_BACK = -(BOX_D - WALL) + 2.5   # Pi board edge; ports overhang ~2 mm into the back window
+PI_FRONT = PI_BACK + 85.0
+PI_X0 = BOX_W / 2 - 28.0          # board spans X0 .. X0 + 56; micro-USB edge at X0 + 56
 
-    # panel screw ribs: full-length along the wall (prints without overhangs, stiffens the wall)
+
+def _prism(points_xy, z0, z1):
+    """Extrude a closed XY polygon from z0 to z1."""
+    w = Part.makePolygon([V(x, y, z0) for x, y in points_xy] + [V(points_xy[0][0], points_xy[0][1], z0)])
+    return Part.Face(w).extrude(V(0, 0, z1 - z0))
+
+
+def _panel_screw_xy(x, y):
+    return WALL + FIT + x, WALL + FIT + py(y)
+
+
+def build_tray():
+    outer = box(BOX_W, TRAY_H, BOX_D, 0, 0, -BOX_D)
+    outer = outer.makeFillet(3.0, [e for e in outer.Edges if abs(e.tangentAt(e.FirstParameter).y) > 0.99])
+    tray = outer.cut(box(BOX_W - 2 * WALL, BOX_H, BOX_D, WALL, WALL, -(BOX_D - WALL)))   # open top + front
+    adds, cuts = [], []
+    zr0, zr1 = -(BOX_D - WALL), -PANEL_T   # ribs run from the back wall to just behind the panel
+
     for x, y in PANEL_SCREWS:
-        X, Y = ox + x, oy + py(y)
-        if y < 10 or y > PANEL_H - 10:       # top / bottom wall
-            wy = BOX_H - WALL if y < 10 else WALL
-            y0, y1 = sorted((wy, Y))
-            adds.append(box(6.0, y1 - y0 + 3.0, BOX_D - PANEL_T - WALL, X - 3.0, y0 - 1.5, -(BOX_D - WALL)))
-        else:                                # side walls
+        X, Y = _panel_screw_xy(x, y)
+        if y > PANEL_H - 10:                   # bottom edge: rib standing on the floor
+            adds.append(box(6.0, Y + 3.0 - WALL, zr1 - zr0, X - 3.0, WALL, zr0))
+        elif y > 10:                           # side edges: rib on the wall, 45 deg underside (no supports)
             wx = WALL if x < 10 else BOX_W - WALL
-            x0, x1 = sorted((wx, X))
-            adds.append(box(x1 - x0 + 3.0, 6.0, BOX_D - PANEL_T - WALL, x0 - 1.5, Y - 3.0, -(BOX_D - WALL)))
+            s = 1 if x < 10 else -1
+            xe = X + s * 3.0
+            pts = [(wx, Y + 3.0), (xe, Y + 3.0), (xe, Y - 3.0), (wx, Y - 3.0 - abs(xe - wx))]
+            adds.append(_prism(pts, zr0, zr1))
+        else:
+            continue                           # top edge: these screws go into the lid
         cuts.append(cyl(SCREW_PILOT, 12, X, Y, -PANEL_T + 0.01))
 
-    # Raspberry Pi 3B lying on the floor, USB/Ethernet end against the back wall
-    pi_back = -(BOX_D - WALL) + 2.5          # board edge; ports overhang ~2 mm into the window
-    pi_front = pi_back + 85.0
-    pi_x0 = BOX_W / 2 - 28.0                 # board spans x0 .. x0 + 56; micro-USB edge at x0 + 56
-    for hz in (pi_front - 3.5, pi_front - 61.5):
-        for hx in (pi_x0 + 56 - 3.5, pi_x0 + 56 - 52.5):
-            d = Part.makeBox(6.0, PI_STANDOFF, 6.0, V(-3.0, 0, -3.0))
-            d.rotate(V(0, 0, 0), V(0, 1, 0), 45)      # diamond: self-supporting when printed upright
-            d.translate(V(hx, WALL, hz))
-            adds.append(d)
+    for cx, cz in LID_COLUMNS:                 # lid screw columns, floor to lid
+        adds.append(box(7.0, TRAY_H - WALL, 7.0, cx - 3.5, WALL, cz - 3.5))
+        cuts.append(cyl(SCREW_PILOT, 10, cx, TRAY_H + 0.01, cz, (0, -1, 0)))
+
+    for hz in (PI_FRONT - 3.5, PI_FRONT - 61.5):          # Pi 3B standoffs (M2.5 holes 58 x 49 mm)
+        for hx in (PI_X0 + 56 - 3.5, PI_X0 + 56 - 52.5):
+            adds.append(cyl(6.0, PI_STANDOFF, hx, WALL, hz, (0, 1, 0)))
             cuts.append(cyl(SCREW_PILOT, PI_STANDOFF + 0.5, hx, WALL + PI_STANDOFF + 0.01, hz, (0, -1, 0)))
+
     board_top = WALL + PI_STANDOFF + 1.4
     back_z = -BOX_D - 1
-    # back wall: Pi USB + Ethernet window
-    cuts.append(box(56.0, 18.6, WALL + 2, pi_x0, board_top - 1.0, back_z))
-    # back wall: USB-C power-in (panel-mount USB-C -> micro-USB cable) and LNA 5 V DC jack
-    ux, uy = BOX_W - 26.0, 22.0
+    cuts.append(box(56.0, 18.6, WALL + 2, PI_X0, board_top - 1.0, back_z))               # Pi USB + LAN window
+    ux, uy = BOX_W - 26.0, 22.0                                                          # USB-C power in
     cuts.append(box(12.6, 6.6, WALL + 2, ux - 6.3, uy - 3.3, back_z))
     for sx in (-1, 1):
         cuts.append(cyl(3.2, WALL + 2, ux + sx * 11.0, uy, -BOX_D + WALL + 0.5))
-    lx, ly = BOX_W - 26.0, 52.0
+    lx, ly = BOX_W - 26.0, 52.0                                                          # LNA 5 V DC jack
     cuts.append(cyl(8.1, WALL + 2, lx, ly, -BOX_D + WALL + 0.5))
-    # back labels (read from behind: mirrored)
-    back_txt = [text_solid("5V IN", 3.5, ux, uy - 9.0, TEXT_DEPTH + 0.01, z_top=-BOX_D + TEXT_DEPTH, mirror=True),
-                text_solid("LNA 5V", 3.5, lx, ly - 9.0, TEXT_DEPTH + 0.01, z_top=-BOX_D + TEXT_DEPTH, mirror=True),
-                text_solid("SDR  USB  LAN", 3.5, pi_x0 + 28, board_top + 22.0, TEXT_DEPTH + 0.01,
-                           z_top=-BOX_D + TEXT_DEPTH, mirror=True)]
-    # vents: top wall above the Pi, and the side wall next to it
-    for i in range(8):
-        vx = pi_x0 + 4 + i * 6.5
-        cuts.append(box(3.0, WALL + 2, 50.0, vx, BOX_H - WALL - 1, pi_front - 75.0))
-    for i in range(4):
-        cuts.append(box(WALL + 2, 3.0, 50.0, BOX_W - WALL - 1, 12.0 + i * 6.5, pi_front - 75.0))
+    zt = -BOX_D + TEXT_DEPTH
+    back_txt = [text_solid("5V IN", 3.5, ux, uy - 9.0, TEXT_DEPTH + 0.01, z_top=zt, mirror=True),
+                text_solid("LNA 5V", 3.5, lx, ly - 9.0, TEXT_DEPTH + 0.01, z_top=zt, mirror=True),
+                text_solid("SDR  USB  LAN", 3.5, PI_X0 + 28, board_top + 22.0, TEXT_DEPTH + 0.01, z_top=zt,
+                           mirror=True)]
+    for i in range(4):                                                                   # side vents by the Pi
+        cuts.append(box(WALL + 2, 3.0, 50.0, BOX_W - WALL - 1, 12.0 + i * 6.5, PI_FRONT - 75.0))
 
     for a in adds:
-        shell = shell.fuse(a)
-    shell = shell.cut(Part.makeCompound(cuts + back_txt)).removeSplitter()
-    return shell, {"pi_standoffs_z": [pi_front - 3.5, pi_front - 61.5]}
+        tray = tray.fuse(a)
+    return tray.cut(Part.makeCompound(cuts + back_txt)).removeSplitter()
+
+
+def build_lid():
+    lid = box(BOX_W, LID_T, BOX_D, 0, TRAY_H, -BOX_D)
+    lid = lid.makeFillet(3.0, [e for e in lid.Edges if abs(e.tangentAt(e.FirstParameter).y) > 0.99])
+    t, d = LIP
+    c = 0.2
+    y0 = TRAY_H - d
+    front = -PANEL_T - 12.0                    # keep the lip clear of the panel and its top screws
+    lips = [box(t, d, front + BOX_D - WALL - c, WALL + c, y0, -(BOX_D - WALL - c)),
+            box(t, d, front + BOX_D - WALL - c, BOX_W - WALL - c - t, y0, -(BOX_D - WALL - c)),
+            box(BOX_W - 2 * (WALL + c), d, t, WALL + c, y0, -(BOX_D - WALL - c))]
+    adds, cuts = lips[:], []
+    for cx, cz in LID_COLUMNS:                 # notch the lip around the columns, screw holes through
+        cuts.append(box(8.6, d + 0.1, 8.6, cx - 4.3, y0 - 0.05, cz - 4.3))
+        cuts.append(cyl(SCREW_HOLE, LID_T + 1, cx, BOX_H + 0.5, cz, (0, -1, 0)))
+        cuts.append(Part.makeCone(SCREW_HOLE / 2 + 1.6, SCREW_HOLE / 2, 1.6, V(cx, BOX_H + 0.01, cz), V(0, -1, 0)))
+    for x, y in PANEL_SCREWS:                  # bosses for the panel's top screws
+        if y >= 10:
+            continue
+        X, Y = _panel_screw_xy(x, y)
+        adds.append(box(6.0, TRAY_H - (Y - 3.0), 9.0, X - 3.0, Y - 3.0, -PANEL_T - 9.0))
+        cuts.append(cyl(SCREW_PILOT, 10, X, Y, -PANEL_T + 0.01))
+    for i in range(8):                         # vents above the Pi
+        cuts.append(box(3.0, LID_T + 2, 50.0, PI_X0 + 4 + i * 6.5, TRAY_H - 1, PI_FRONT - 75.0))
+    for a in adds:
+        lid = lid.fuse(a)
+    return lid.cut(Part.makeCompound(cuts)).removeSplitter()
+
+
+def _upright(shape, flip=False):
+    """Model Y (up) -> print Z. flip=True turns the part upside down (lid: top face on the plate)."""
+    s = shape.copy()
+    s.rotate(V(0, 0, 0), V(1, 0, 0), -90 if flip else 90)
+    s.translate(V(-s.BoundBox.XMin, -s.BoundBox.YMin, -s.BoundBox.ZMin))
+    return s
 
 
 # ---------------------------------------------------------------- export
@@ -259,15 +307,20 @@ def main():
     t = text.copy(); t.rotate(V(0, PANEL_H / 2, 0), V(1, 0, 0), 180); t.translate(V(0, 0, -p2.BoundBox.ZMin))
     write_stl(t, "panel_labels.stl")
     write_stl(oled_clamp(), "oled_clamp.stl")
-    shell, info = build_box()
-    assert shell.isValid(), "box solid invalid"
-    shell.translate(V(0, 0, BOX_D))   # back wall on the plate
-    write_stl(shell, "box.stl")
+    tray, lid = build_tray(), build_lid()
+    assert tray.isValid() and lid.isValid(), "tray/lid solid invalid"
+    tray_p, lid_p = _upright(tray), _upright(lid, flip=True)
+    write_stl(tray_p, "tray.stl")
+    write_stl(lid_p, "lid.stl")
     (OUT / "panel_holes.json").write_text(json.dumps(holes, indent=1))
     lift.exportStep(str(OUT / "panel.step"))
-    shell.exportStep(str(OUT / "box.step"))
+    tray_p.exportStep(str(OUT / "tray.step"))
+    lid_p.exportStep(str(OUT / "lid.step"))
+    for old_file in ("box.stl", "box.step"):
+        (OUT / old_file).unlink(missing_ok=True)
     print("panel", [round(v, 1) for v in (lift.BoundBox.XLength, lift.BoundBox.YLength, lift.BoundBox.ZLength)])
-    print("box", [round(v, 1) for v in (shell.BoundBox.XLength, shell.BoundBox.YLength, shell.BoundBox.ZLength)])
+    for n, s in (("tray", tray_p), ("lid", lid_p)):
+        print(n, [round(v, 1) for v in (s.BoundBox.XLength, s.BoundBox.YLength, s.BoundBox.ZLength)])
 
 
 main()

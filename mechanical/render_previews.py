@@ -37,13 +37,16 @@ def view(tris, elev, azim, path, title, color=(0.25, 0.27, 0.3), extra=None):
     fig.savefig(path, bbox_inches="tight"); plt.close(fig)
 
 
-panel, labels, box = load("panel.stl"), load("panel_labels.stl"), load("box.stl")
+panel, labels = load("panel.stl"), load("panel_labels.stl")
+tray, lid = load("tray.stl"), load("lid.stl")
 # panel is stored face-down; flip back so the front faces the viewer (+Z)
 def flip(t):
     t = t.copy(); t[..., 1] = 90 - t[..., 1]; t[..., 2] = -t[..., 2]; return t
-view(flip(panel), 90, -90, OUT / "preview_panel_front_v2.png", "Front panel (front, labels inlaid)",
+view(flip(panel), 90, -90, OUT / "preview_panel_front_v3.png", "Front panel (front, labels inlaid)",
      extra=(flip(labels) + [0, 0, 0.05], (0.95, 0.95, 0.95)))
-view(panel, 90, -90, OUT / "preview_panel_back.png", "Front panel (back: LED collars, OLED pocket)")
-view(box, 25, -60, OUT / "preview_box_front.png", "Box (front opening)")
-view(box, -25, 120, OUT / "preview_box_back.png", "Box (back wall)")
+# tray as printed = as used (bottom down); Y = depth (back at max Y)
+view(tray, 35, -60, OUT / "preview_tray.png", "Tray (open top + front): Pi standoffs, lid columns, ribs")
+view(tray, 20, 115, OUT / "preview_tray_back.png", "Tray back wall: USB/LAN window, USB-C, LNA jack")
+lid_up = lid.copy(); lid_up[..., 2] = -lid_up[..., 2]
+view(lid_up, -35, -60, OUT / "preview_lid.png", "Lid (underside): lip, panel-screw bosses, vents")
 print("ok")

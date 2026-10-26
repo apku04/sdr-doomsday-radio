@@ -15,7 +15,8 @@ uv run --with numpy --with matplotlib mechanical/render_previews.py
 |---|---|---|
 | `panel.stl` | face **down**, no supports | smooth front from the plate. 160 × 90 × 3 mm + 4 mm of features on the back |
 | `panel_labels.stl` | with the panel | same origin: Bambu Studio → right-click panel → *Add part* → this file, give it white filament (AMS). No AMS: leave it out, the labels stay engraved |
-| `box.stl` | standing on its **back wall**, no supports | 166.4 × 96.4 × 130 mm, 3 mm walls |
+| `tray.stl` | standing on its **bottom**, no supports | 166.4 wide × 130 deep × 93.4 high, open top + front |
+| `lid.stl` | **upside down** (top face on the plate) | 3 mm plate + locating lip; total box height 96.4 mm |
 | `oled_clamp.stl` | flat | holds the OLED module in its pocket |
 | `*.step` | — | for editing in FreeCAD / Fusion |
 
@@ -38,14 +39,17 @@ pushbuttons. Everything else is standard.
 
 ## Box
 
-* Panel drops flush into the front opening; 6 × **M2.5 × 8** countersunk screws into the ribs.
+* **Tray + lid.** Assembly with the lid off: screw the Pi in from above, fit the HAT, wire
+  the panel, then close the lid with 4 × **M2.5 × 10** countersunk screws into the columns.
+* Panel drops flush into the front opening: 6 × **M2.5 × 8** countersunk screws — 4 into the
+  tray ribs, the 2 top ones into bosses on the lid (so fit the lid before those two).
 * Raspberry Pi 3B on 4 printed standoffs (**M2.5 × 6** self-tapping), USB/Ethernet end
   against the back-wall window: plug the RTL-SDR (on its USB extension) and the USB speaker
   straight into the Pi.
 * Back wall: **USB-C** cutout 12.6 × 6.6 mm with 2 × Ø3.2 holes 22 mm apart for a
   panel-mount USB-C → micro-USB cable (check your part's hole spacing: `ux`, ±11 mm in
   `build_box`), and an **Ø8.1** hole for a 5.5 × 2.1 mm DC jack = LNA 5 V output.
-* Vents over the Pi (top and side).
+* Vents over the Pi (lid and right side wall).
 * Space behind the panel ~37 mm before the Pi's front edge for the KY-040 modules and wiring.
 
 ## Wiring
