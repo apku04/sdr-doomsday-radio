@@ -11,9 +11,17 @@ from .kicad_pcb import mm
 from .kicad_sch import _cli
 
 
-def add_gnd_pours(pcb_path, net="GND", clearance=0.3, min_width=0.25, pitch_mm=4.0):
-    """GND zone over the whole board on both layers, filled, thermal reliefs on pads."""
+def add_gnd_pours(pcb_path, net="GND", clearance=0.3, min_width=0.25, pitch_mm=4.0, solid_pads=()):
+    """GND zone over the whole board on both layers, filled, thermal reliefs on pads.
+    solid_pads: [(ref, pad)] connected solid (pads a thermal relief cannot reach well)."""
     board = pcbnew.LoadBoard(str(pcb_path))
+    for ref, num in solid_pads:
+        for pad in board.FindFootprintByReference(ref).Pads():
+            if pad.GetNumber() == num:
+                pad.SetLocalZoneConnection(pcbnew.ZONE_CONNECTION_FULL)
+    for fp in board.GetFootprints():
+        if fp.GetReference().startswith("H") and fp.GetFPID().GetLibNickname() == "MountingHole":
+            fp.Reference().SetVisible(False)
     netinfo = board.FindNet(net)
     bb = board.GetBoardEdgesBoundingBox()
     for layer in (pcbnew.F_Cu, pcbnew.B_Cu):

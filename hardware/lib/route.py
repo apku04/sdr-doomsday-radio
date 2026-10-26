@@ -166,21 +166,49 @@ def _simplify(path):
     return out, vias
 
 
-def autoroute(pcb_path, circuit=None, pitch=0.1, rules=RULES, net_widths=None, order=None, via_cost=12.0,
-              skip_nets=()):
-    """Route every net of the board in place. net_widths: net -> track width (mm)."""
+def autoroute(pcb_path, circuit=None, attempts=6, **kw):
+    """Route with rip-up-and-retry: on failure, start over with the failed nets routed first."""
+    import shutil
+    pristine = str(pcb_path) + ".unrouted"
+    shutil.copyfile(pcb_path, pristine)
+    first = []
+    err = None
+    for _ in range(attempts):
+        shutil.copyfile(pristine, pcb_path)
+        try:
+            _route_once(pcb_path, first_nets=first, **kw)
+            break
+        except RouteError as e:
+            err = e
+            failed = [f.split(":")[0] for f in str(e).split("could not route: ")[1].split(", ")]
+            first = list(dict.fromkeys(failed + first))
+    else:
+        raise err
+    import os
+    os.remove(pristine)
+    return pcb_path
+
+
+def _route_once(pcb_path, pitch=0.1, rules=RULES, net_widths=None, order=None, via_cost=12.0,
+                skip_nets=(), pour_nets=("GND",), first_nets=()):
+    """Route every net of the board in place. net_widths: net -> track width (mm).
+    Nets in pour_nets are routed where possible; pads that cannot be reached are left to the
+    copper pour (DRC's unconnected check is the gate for those)."""
     board = pcbnew.LoadBoard(str(pcb_path))
     net_widths = net_widths or {}
     g = Grid(board, pitch)
     _edge_keepout(g, rules["edge_clear"])
     pads = _stamp_pads(g)
     by_net = {}
+    pads.sort(key=lambda p: (p[0].GetParentFootprint().GetReference(), p[0].GetNumber()))
     for pad, code, on, cells in pads:
         by_net.setdefault(code, []).append((pad, on, cells))
     names = {code: board.FindNet(code).GetNetname() for code in by_net}
     nets = sorted(by_net, key=lambda n: (-(net_widths.get(names[n], rules["track"])), len(by_net[n])))
     if order:
         nets.sort(key=lambda n: order.index(names[n]) if names[n] in order else len(order))
+    if first_nets:
+        nets.sort(key=lambda n: first_nets.index(names[n]) if names[n] in first_nets else len(first_nets))
     via_r = rules["via_d"] / 2
     failures = []
     for net in nets:
@@ -218,6 +246,8 @@ def autoroute(pcb_path, circuit=None, pitch=0.1, rules=RULES, net_widths=None, o
             sources = [(L, *centre) for L in best[1]]
             path = _astar(g, net, sources, g.cell(*pc(target)), blocked, via_blk, via_cost)
             if path is None:
+                if name in pour_nets:
+                    continue
                 failures.append(f"{name}: {best[0].GetParentFootprint().GetReference()}.{best[0].GetNumber()}")
                 continue
             _commit(board, g, net, path, width, via_r, best[0], blocked, via_blk, rules, pitch)

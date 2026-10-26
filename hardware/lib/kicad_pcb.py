@@ -95,6 +95,42 @@ def build_pcb(circuit, size, placements, holes, path, rules=RULES, net_widths=No
     return path
 
 
+def fit_footprint(fp_id, side, targets, tol=0.01):
+    """Find (x, y, rot) so that pads land on targets {pad_number: (x_mm, y_mm)} on the given side."""
+    first = next(iter(targets))
+    for rot in (0, 90, 180, 270):
+        board = pcbnew.BOARD()
+        fp = load_footprint(fp_id)
+        board.Add(fp)
+        fp.SetPosition(pcbnew.VECTOR2I(0, 0))
+        fp.SetOrientationDegrees(rot)
+        if side == "B":
+            fp.Flip(fp.GetPosition(), pcbnew.FLIP_DIRECTION_TOP_BOTTOM)
+        pads = {p.GetNumber(): (pcbnew.ToMM(p.GetPosition().x), pcbnew.ToMM(p.GetPosition().y)) for p in fp.Pads()}
+        dx = targets[first][0] - pads[first][0]
+        dy = targets[first][1] - pads[first][1]
+        if all(abs(pads[n][0] + dx - x) < tol and abs(pads[n][1] + dy - y) < tol for n, (x, y) in targets.items()):
+            return round(dx, 4), round(dy, 4), rot
+    raise ValueError(f"{fp_id}: no rotation fits {targets}")
+
+
+def add_text(path, items):
+    """items: [(text, x, y, layer 'F'|'B', size_mm, rot)] silkscreen texts."""
+    board = pcbnew.LoadBoard(str(path))
+    for text, x, y, side, size, rot in items:
+        t = pcbnew.PCB_TEXT(board)
+        t.SetText(text)
+        t.SetPosition(pcbnew.VECTOR2I(mm(x), mm(y)))
+        t.SetLayer(pcbnew.F_SilkS if side == "F" else pcbnew.B_SilkS)
+        t.SetTextSize(pcbnew.VECTOR2I(mm(size), mm(size)))
+        t.SetTextThickness(mm(max(0.15, size * 0.15)))
+        t.SetTextAngleDegrees(rot)
+        if side == "B":
+            t.SetMirrored(True)
+        board.Add(t)
+    pcbnew.SaveBoard(str(path), board)
+
+
 def pcb_pad_nets(path):
     board = pcbnew.LoadBoard(str(path))
     return {(fp.GetReference(), pad.GetNumber()): pad.GetNetname()

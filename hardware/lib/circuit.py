@@ -26,6 +26,7 @@ class Circuit:
     def add(self, part):
         if any(p.ref == part.ref for p in self.parts):
             raise ValueError(f"duplicate ref {part.ref}")
+        part.uuid = str(uuid.uuid5(uuid.NAMESPACE_URL, f"sdr-hat/{self.name}/{part.ref}"))  # stable builds
         self.parts.append(part)
         return part
 
