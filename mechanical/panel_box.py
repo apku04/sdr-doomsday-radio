@@ -29,7 +29,7 @@ FONT = r"C:\Windows\Fonts\arialbd.ttf"
 # ---- parameters: change to match your parts --------------------------------------------
 PANEL_W, PANEL_H, PANEL_T = 160.0, 90.0, 3.0
 ENCODER_HOLE = 7.5        # KY-040 / EC11 M7 bushing
-BUTTON_HOLE = 12.2        # 12 mm panel-mount pushbutton
+BUTTON_HOLE = 7.2         # 7 mm panel-mount tactile pushbutton (owner)
 LED_HOLE = 3.1            # 3 mm LED (owner) — use 5.1 for 5 mm LEDs
 LED_COLLAR = (5.0, 4.0)   # back collar outer diameter, length (LEDs are 8 mm apart: keep < 8)
 JACK_HOLE = 6.2           # 3.5 mm panel jack (PJ-392, M6)

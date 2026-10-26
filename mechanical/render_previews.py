@@ -41,7 +41,7 @@ panel, labels, box = load("panel.stl"), load("panel_labels.stl"), load("box.stl"
 # panel is stored face-down; flip back so the front faces the viewer (+Z)
 def flip(t):
     t = t.copy(); t[..., 1] = 90 - t[..., 1]; t[..., 2] = -t[..., 2]; return t
-view(flip(panel), 90, -90, OUT / "preview_panel_front.png", "Front panel (front, labels inlaid)",
+view(flip(panel), 90, -90, OUT / "preview_panel_front_v2.png", "Front panel (front, labels inlaid)",
      extra=(flip(labels) + [0, 0, 0.05], (0.95, 0.95, 0.95)))
 view(panel, 90, -90, OUT / "preview_panel_back.png", "Front panel (back: LED collars, OLED pocket)")
 view(box, 25, -60, OUT / "preview_box_front.png", "Box (front opening)")

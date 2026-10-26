@@ -27,7 +27,7 @@ the panel front a nice finish.
 | Part | Hole | Parameter |
 |---|---|---|
 | 4 × KY-040 rotary encoder (EC11, M7 bushing) | Ø7.5 | `ENCODER_HOLE` |
-| 5 × 12 mm panel-mount pushbutton (Scan, Manual, DR P4, Randers, Back) | Ø12.2 | `BUTTON_HOLE` |
+| 5 × 7 mm panel-mount tactile pushbutton (Scan, Manual, DR P4, Randers, Back) | Ø7.2 | `BUTTON_HOLE` |
 | 7 × 3 mm LED, pressed in from the back (collar Ø5 × 4 mm) | Ø3.1 | `LED_HOLE`, `LED_COLLAR` |
 | 1.5" 128×128 SH1107 OLED module | 30 × 30 window, pocket for the module board | `OLED_WINDOW`, `OLED_MODULE` |
 | 3.5 mm panel jack (PJ-392, M6) for headphones | Ø6.2 | `JACK_HOLE` |
