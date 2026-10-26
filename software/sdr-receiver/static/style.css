@@ -1,0 +1,65 @@
+:root {
+  --bg: #0b0d0f; --panel: #15191d; --line: #262c33; --text: #d7dde3; --dim: #7d8791;
+  --amber: #ffb000; --green: #3ddc84; --red: #ff4d4d; --blue: #4da3ff;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.4 system-ui, sans-serif; }
+header { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 6px;
+  padding: 8px 16px; background: #000; border-bottom: 1px solid var(--line); }
+.spacer { flex: 1; }
+main { max-width: 640px; margin: 0 auto; padding: 12px 16px 40px; display: grid; gap: 12px; }
+h2 { margin: 0 0 8px; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+.card, .display { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+.display { text-align: center; }
+.band { color: var(--dim); font-size: 13px; text-transform: uppercase; letter-spacing: .1em; }
+.freq { font: 600 clamp(40px, 13vw, 64px)/1.1 ui-monospace, Consolas, monospace; color: var(--amber); }
+.freq small { font-size: 16px; margin-left: 6px; color: var(--dim); }
+.sub { margin-top: 4px; }
+.tag { display: inline-block; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line); font-size: 12px; color: var(--dim); }
+.tag.unverified { color: var(--amber); border-color: var(--amber); }
+.tag.listed { color: var(--blue); border-color: var(--blue); }
+.tag.heard { color: var(--green); border-color: var(--green); }
+.tag.digital { color: var(--red); border-color: var(--red); }
+.error { margin-top: 8px; color: var(--red); font-weight: 600; }
+.row { display: flex; gap: 8px; align-items: center; margin: 6px 0; }
+.row > * { flex: 1; }
+button, select, input { font: inherit; color: var(--text); background: #20262c; border: 1px solid #333b44;
+  border-radius: 6px; padding: 10px; min-height: 44px; }
+button { cursor: pointer; }
+button:active { background: #2c343c; }
+button.big { font-size: 17px; font-weight: 600; }
+button.on { background: #0f3d22; border-color: var(--green); }
+button.tune { font-size: 26px; font-weight: 700; }
+.stopscan { width: 100%; background: #5a0f0f; border-color: var(--red); font-size: 20px; font-weight: 800; }
+.seg { display: flex; gap: 6px; }
+.seg button { flex: 1; }
+.seg button.sel { background: #3a2c00; border-color: var(--amber); color: var(--amber); }
+label { display: block; margin: 8px 0; }
+.meter { position: relative; height: 14px; background: #0d1013; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+#meterBar { height: 100%; width: 0; background: #3b4653; transition: width .2s; }
+#meterBar.open { background: var(--green); }
+#meterSq { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--amber); }
+.meterrow { font-size: 14px; margin-bottom: 4px; }
+input[type=range] { width: 100%; padding: 0; min-height: 32px; }
+.hint { color: var(--dim); font-size: 13px; }
+.pill { padding: 3px 10px; border-radius: 999px; font-weight: 700; font-size: 13px; background: #222; }
+.pill.run { background: #0f3d22; color: var(--green); }
+.pill.err { background: #4a0d0d; color: var(--red); }
+.pill.off { color: var(--dim); }
+.pill.scan { background: #3a2c00; color: var(--amber); }
+.led { width: 12px; height: 12px; border-radius: 50%; background: #222; border: 1px solid #444; }
+.led.on { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.led.amber { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+.ledlbl { font-size: 11px; color: var(--dim); margin-right: 6px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+td, th { padding: 6px 4px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+tr.cur td { background: #2a2100; }
+td.f { font-family: ui-monospace, Consolas, monospace; white-space: nowrap; cursor: pointer; color: var(--amber); }
+td.n { cursor: pointer; }
+td button { min-height: 32px; padding: 4px 8px; }
+td input[type=checkbox] { width: 22px; height: 22px; }
+#messages { list-style: none; margin: 0; padding: 0; font-size: 13px; max-height: 200px; overflow-y: auto; }
+#messages li { padding: 2px 0; border-bottom: 1px solid #1c2126; }
+#messages .warn { color: var(--amber); } #messages .error { color: var(--red); }
+pre { white-space: pre-wrap; word-break: break-all; font-size: 12px; color: var(--dim); }

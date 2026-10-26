@@ -1,0 +1,6 @@
+.superpowers/
+tools/
+__pycache__/
+*.pyc
+hardware/**/*-backups/
+hardware/**/fp-info-cache

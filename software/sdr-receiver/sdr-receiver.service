@@ -1,0 +1,20 @@
+[Unit]
+Description=RTL-SDR emergency listening receiver (web UI on :8080)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/sdr-receiver
+ExecStart=/usr/bin/python3 -B /home/pi/sdr-receiver/app.py
+Restart=on-failure
+RestartSec=5
+KillMode=control-group
+KillSignal=SIGTERM
+TimeoutStopSec=8
+# No NoNewPrivileges/ProtectSystem: USB recovery runs "sudo -n uhubctl" (see settings.json).
+
+[Install]
+WantedBy=multi-user.target

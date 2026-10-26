@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SDR Receiver</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <span id="rxState" class="pill">…</span>
+  <span id="actLed" class="led" title="Squelch open / activity"></span><span class="ledlbl">ACT</span>
+  <span id="scanLed" class="led" title="Scanning"></span><span class="ledlbl">SCAN</span>
+  <span class="spacer"></span>
+  <span id="audioState" class="pill off">audio off</span>
+</header>
+
+<main>
+  <section class="display">
+    <div class="band" id="bandLabel">—</div>
+    <div class="freq"><span id="freq">---.----</span><small>MHz</small></div>
+    <div class="sub"><span id="mode" class="tag">—</span> <span id="presetName">no preset</span> <span id="verif" class="tag"></span></div>
+    <div id="error" class="error" hidden></div>
+  </section>
+
+  <section class="row">
+    <button id="btnPower" class="big">Start receiver</button>
+    <button id="btnListen" class="big">Listen</button>
+  </section>
+
+  <section class="card">
+    <h2>Band</h2>
+    <div id="bands" class="seg"></div>
+  </section>
+
+  <section class="card">
+    <h2>Tuning</h2>
+    <div class="row">
+      <button id="tuneDown" class="tune">−</button>
+      <select id="step" title="Step"></select>
+      <button id="tuneUp" class="tune">+</button>
+    </div>
+    <form id="freqForm" class="row">
+      <input id="freqIn" inputmode="decimal" autocomplete="off" placeholder="MHz e.g. 145.6375">
+      <button type="submit">Tune</button>
+    </form>
+    <div class="hint" id="bandRange"></div>
+  </section>
+
+  <section class="card">
+    <h2>Scan</h2>
+    <div class="row">
+      <button id="btnScan">Start scan</button>
+      <button id="btnResume" title="Leave this channel and continue">Skip / resume</button>
+    </div>
+    <button id="btnStopScan" class="stopscan" hidden>STOP SCAN</button>
+    <div id="scanInfo" class="hint">off</div>
+  </section>
+
+  <section class="card">
+    <h2>Signal, squelch &amp; audio</h2>
+    <div class="meterrow">Signal <b id="levelVal">—</b></div>
+    <div class="meter" title="Channel power, -90..0 dBFS; tick = squelch level"><div id="meterBar"></div><div id="meterSq"></div></div>
+    <label>Squelch <b id="sqVal"></b> <span class="hint">(far left = off)</span>
+      <input type="range" id="squelch" min="-90" max="0" step="1"></label>
+    <div class="row"><button id="btnMonitor">Open squelch (monitor)</button></div>
+    <label>Volume <b id="volVal"></b>
+      <input type="range" id="volume" min="0" max="100" step="1"></label>
+    <label>RF gain <select id="gain"></select></label>
+  </section>
+
+  <section class="card">
+    <h2>Presets</h2>
+    <table id="presets"><thead><tr><th>MHz</th><th>Name</th><th>Status</th><th title="Include in scan">Scan</th><th></th></tr></thead><tbody></tbody></table>
+    <form id="addForm" class="row">
+      <input id="addName" maxlength="80" placeholder="Name for current frequency">
+      <button type="submit">Save current</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Messages</h2>
+    <ul id="messages"></ul>
+    <details><summary>Diagnostics</summary><pre id="diag"></pre></details>
+  </section>
+</main>
+<script src="/static/app.js"></script>
+</body>
+</html>

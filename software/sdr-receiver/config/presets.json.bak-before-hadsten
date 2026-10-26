@@ -1,0 +1,158 @@
+{
+  "_readme": [
+    "Edit freely while the app is stopped (or use the web UI). Fields:",
+    "  id            unique, a-z 0-9 and '-'",
+    "  band          vhf | uhf | fm   (frequency must lie inside the band)",
+    "  freq_mhz      output frequency you listen to",
+    "  digital       null for analogue FM, or e.g. 'DMR', 'C4FM', 'D-STAR'. Digital presets can be tuned but never scanned.",
+    "  verification  unverified | listed (in a published list, not yet heard here) | heard (confirmed by ear at this receiver)",
+    "  enabled       include in scan",
+    "Repeater data: oz1ln.dk 'Repeatere i Danmark' (linked from edr.dk), fetched 2026-10-26.",
+    "Several Danish repeaters share one output frequency; which one you hear depends on your location."
+  ],
+  "presets": [
+    {
+      "id": "v-145500",
+      "name": "2 m FM calling (simplex)",
+      "band": "vhf",
+      "freq_mhz": 145.5,
+      "digital": null,
+      "verification": "listed",
+      "enabled": true,
+      "source": "EDR VUSHF band plan: 145.500 'FM opkald'",
+      "notes": ""
+    },
+    {
+      "id": "v-145588",
+      "name": "OZ8REQ Vejle V",
+      "band": "vhf",
+      "freq_mhz": 145.5875,
+      "digital": "C4FM",
+      "verification": "listed",
+      "enabled": false,
+      "source": "oz1ln.dk, updated 2022-02-19",
+      "notes": "Yaesu Fusion. Not decodable as FM speech."
+    },
+    {
+      "id": "v-145638",
+      "name": "OZ1REX Them",
+      "band": "vhf",
+      "freq_mhz": 145.6375,
+      "digital": null,
+      "verification": "listed",
+      "enabled": true,
+      "source": "oz1ln.dk, updated 2022-09-16",
+      "notes": "Analogue FM."
+    },
+    {
+      "id": "v-145663",
+      "name": "OZ0ASR Struer / OZ4GRE Grenaa",
+      "band": "vhf",
+      "freq_mhz": 145.6625,
+      "digital": null,
+      "verification": "listed",
+      "enabled": true,
+      "source": "oz1ln.dk, updated 2025-05-18 / 2015-04-16",
+      "notes": "Analogue FM, shared channel. OZ0ASR CTCSS 103.5 Hz."
+    },
+    {
+      "id": "v-145675",
+      "name": "OZ9REG Yding",
+      "band": "vhf",
+      "freq_mhz": 145.675,
+      "digital": null,
+      "verification": "listed",
+      "enabled": true,
+      "source": "oz1ln.dk, updated 2023-03-11",
+      "notes": "ASR (analogue FM, linked). CTCSS 103.5 Hz."
+    },
+    {
+      "id": "u-433500",
+      "name": "70 cm FM calling (simplex)",
+      "band": "uhf",
+      "freq_mhz": 433.5,
+      "digital": null,
+      "verification": "listed",
+      "enabled": true,
+      "source": "EDR VUSHF band plan: 433.500 'FM opkald (mobil)'",
+      "notes": ""
+    },
+    {
+      "id": "u-434675",
+      "name": "DMR: OZ1REC Vodskov / OZ6REQ Yding / OZ2REM",
+      "band": "uhf",
+      "freq_mhz": 434.675,
+      "digital": "DMR",
+      "verification": "listed",
+      "enabled": false,
+      "source": "oz1ln.dk, updated 2026-07-26 (OZ1REC)",
+      "notes": "DMR+. Not decodable as FM speech."
+    },
+    {
+      "id": "u-434900",
+      "name": "OZ8REL Gladsaxe / OZ0REQ Fredericia / OZ8REB Nyborg / OZ7GRE Grenaa",
+      "band": "uhf",
+      "freq_mhz": 434.9,
+      "digital": null,
+      "verification": "listed",
+      "enabled": true,
+      "source": "oz1ln.dk, updated 2014-2024",
+      "notes": "Analogue FM, shared channel. OZ0RV Stenbjerg listed QRT."
+    },
+    {
+      "id": "u-434950",
+      "name": "OZ1REX Them",
+      "band": "uhf",
+      "freq_mhz": 434.95,
+      "digital": null,
+      "verification": "listed",
+      "enabled": true,
+      "source": "oz1ln.dk, updated 2022-09-16",
+      "notes": "Analogue FM. OZ7RET Ravsted and OZ9ASR Soerup listed QRT."
+    },
+    {
+      "id": "u-434975",
+      "name": "OZ2REX Frederikssund / OZ5REB Aarhus",
+      "band": "uhf",
+      "freq_mhz": 434.975,
+      "digital": null,
+      "verification": "listed",
+      "enabled": true,
+      "source": "oz1ln.dk, updated 2025-12-11 / 2024-05-04",
+      "notes": "Analogue FM, shared channel. OZ5REB listed TempQRT."
+    },
+    {
+      "id": "f-104000",
+      "name": "104.0 MHz (station not identified)",
+      "band": "fm",
+      "freq_mhz": 104.0,
+      "digital": null,
+      "verification": "heard",
+      "enabled": false,
+      "source": "rtl_power sweep at this receiver 2026-10-26, +39 dB",
+      "notes": "Strongest carrier. Rename once identified."
+    },
+    {
+      "id": "f-105700",
+      "name": "105.7 MHz (station not identified)",
+      "band": "fm",
+      "freq_mhz": 105.7,
+      "digital": null,
+      "verification": "unverified",
+      "enabled": false,
+      "source": "rtl_power sweep at this receiver 2026-10-26, +34 dB",
+      "notes": ""
+    },
+    {
+      "id": "f-102400",
+      "name": "102.4 MHz (station not identified)",
+      "band": "fm",
+      "freq_mhz": 102.4,
+      "digital": null,
+      "verification": "unverified",
+      "enabled": false,
+      "source": "rtl_power sweep at this receiver 2026-10-26, +28 dB",
+      "notes": ""
+    }
+  ]
+}
