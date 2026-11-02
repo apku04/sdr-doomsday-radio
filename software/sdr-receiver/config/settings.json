@@ -24,6 +24,35 @@
     "fm":  {"label": "FM broadcast", "min_mhz": 87.5, "max_mhz": 108.0, "mode": "wfm",
             "default_mhz": 104.0, "steps_khz": [100, 50, 1000], "squelch_db": null, "gain": 22.9}
   },
+  "autostart": true,
+  "panel": {
+    "_doc": "Front panel (panel.py). BCM pins = hardware/lib/contract.py PI_BCM. rest: A/B states at a detent, (0,3) = KY-040.",
+    "gpiochip": 0,
+    "poll_s": 0.001,
+    "state_poll_s": 0.1,
+    "debounce_s": 0.02,
+    "long_press_s": 1.0,
+    "knob_steps": {"volume": 5, "squelch_db": 2},
+    "encoders": {
+      "volume":  {"a": 5,  "b": 6,  "rest": [0, 3], "invert": false},
+      "squelch": {"a": 12, "b": 13, "rest": [0, 3], "invert": false},
+      "tune":    {"a": 22, "b": 23, "rest": [0, 3], "invert": false},
+      "menu":    {"a": 24, "b": 25, "rest": [0, 3], "invert": false}
+    },
+    "buttons": {
+      "vol_push":  {"pin": 16, "press": "mute"},
+      "sql_push":  {"pin": 19, "press": "monitor"},
+      "tune_push": {"pin": 20, "press": "step_next"},
+      "menu_push": {"pin": 21, "press": "ui:push"},
+      "scan":      {"pin": 17, "press": "scan"},
+      "manual":    {"pin": 4,  "press": "manual"},
+      "q1":        {"pin": 26, "press": null},
+      "q2":        {"pin": 18, "press": "preset:v-145725"},
+      "back":      {"pin": 7,  "press": "ui:back"}
+    },
+    "oled": {"i2c_bus": 1, "addr": "0x3C", "rotate": 0},
+    "leds": {"scan": 14, "sig": 15, "man": 8, "2m": 9, "70cm": 10, "fm": 11}
+  },
   "band_order": ["vhf", "uhf", "fm"],
   "initial_band": "fm",
   "squelch_min_db": -90,

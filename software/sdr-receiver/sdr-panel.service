@@ -1,0 +1,19 @@
+[Unit]
+Description=RX-1 front panel (knobs, buttons, LEDs) for sdr-receiver
+After=sdr-receiver.service
+Wants=sdr-receiver.service
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+SupplementaryGroups=gpio
+WorkingDirectory=/home/pi/sdr-receiver
+ExecStart=/usr/bin/python3 -B /home/pi/sdr-receiver/panel.py
+Restart=always
+RestartSec=2
+KillSignal=SIGTERM
+TimeoutStopSec=5
+
+[Install]
+WantedBy=multi-user.target

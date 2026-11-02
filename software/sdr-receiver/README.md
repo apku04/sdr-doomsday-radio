@@ -169,27 +169,35 @@ sudo rm /etc/modprobe.d/blacklist-rtlsdr.conf      # only if you want the DVB dr
 sudo apt-get remove rtl-sdr python3-flask python3-numpy uhubctl && sudo apt-get autoremove
 ```
 
-## Future GPIO plan (not implemented, no hardware configured)
+## Front panel (`panel.py`, `sdr-panel.service`)
 
-A GPIO module would call `ctl.do(...)` and poll `ctl.indicators()`; no receiver changes.
+The hand-wired RX-1 panel (wiring: `panel-wiring-sheet.html`, pins = `hardware/lib/contract.py`
+`PI_BCM`) is driven by `panel.py`, a separate process that calls this app's HTTP API on
+127.0.0.1:8080. A panel fault cannot stop the receiver. Inputs are polled with one `lgpio`
+group read per ms (edge callbacks are unreliable on this Pi + trixie); ~8 % of one core.
+Pins and mapping: `config/settings.json` → `panel`. OLED: `oled.py` (SH1107 driver), `ui.py` (home screen + menu: band, presets, scan, step, volume, squelch, gain, receiver on/off, contrast, info). Contrast is kept in `config/panel_state.json`. `autostart: true` starts the receiver at boot.
 
-| Control | Action / source | Suggested BCM GPIO (header pin) |
-|---|---|---|
-| Rotary encoder A / B | `encoder_cw` / `encoder_ccw` (tune ± step) | GPIO5 (29) / GPIO6 (31) |
-| Encoder push | `encoder_push` (next step size) | GPIO27 (13) |
-| Band selector | `band_next` | GPIO16 (36) |
-| Scan button | `scan_toggle` (long press `scan_resume`, suggestion) | GPIO26 (37) |
-| Squelch/open button | `monitor` | GPIO25 (22) |
-| Power/status LED | `indicators()["power"]`: on / off / error (blink) | GPIO22 (15) |
-| Scan LED | `indicators()["scan"]` | GPIO23 (16) |
-| Activity LED | `indicators()["activity"]` | GPIO24 (18) |
-| Power on/off | `toggle_power` | (spare) |
+| Control | Action |
+|---|---|
+| TUNE turn / push | frequency ± step (stops a scan) / next step size |
+| VOL turn / push | volume ± 5 % / mute toggle (turning unmutes) |
+| SQL turn / push | squelch ± 2 dB (fully left = off) / monitor (squelch open) |
+| MENU turn / push | opens the OLED menu; in it: move or change value / select, edit, confirm |
+| SCAN · MANUAL | scan on/off · stop scan and listen |
+| BACK | menu: up one level (main menu → home screen). Idle 20 s → home |
+| Q2 · Q1 | preset OZ3RED Randers · unassigned |
 
-3.3 V logic only. Buttons/encoder to GND with internal pull-ups (+100 nF if bouncy).
-LEDs via ≥330 Ω. Pins avoid: I²C GPIO2/3 and I²S GPIO18–21 (`wm8960-soundcard` overlay is in
-config.txt — a WM8960 HAT would give local speaker audio; ReSpeaker 2-mic button = GPIO17),
-SPI0 GPIO7–11 and UART GPIO14/15 (both enabled), GPIO4 (1-Wire), GPIO12/13 (PWM audio).
-Re-check against the real HAT pinout before wiring.
+| LED | Meaning |
+|---|---|
+| SCAN | scanning (blinks while holding on a hit); blinks alone = app not reachable |
+| SIG | squelch open |
+| MAN | listening, not scanning; blinks on receiver error |
+| 2M / 70CM / FM | current band; blinks while the receiver is off |
+
+Knob direction: `encoders.<knob>.invert`. If a knob counts once per two clicks set its
+`rest` to `[0]` or `[3]` (the A/B state it rests at). Tests: `python -m unittest discover -s tests`.
+Logs: `journalctl -u sdr-panel -f`. The pin tester (`~/panel-test`) needs the panel service
+stopped first: `sudo systemctl stop sdr-panel`.
 
 ## Test results (2026-10-26)
 

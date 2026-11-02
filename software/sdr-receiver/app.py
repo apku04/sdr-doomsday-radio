@@ -18,6 +18,16 @@ from sdr.receiver import TooManyListeners
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("app")
 
+
+class _QuietPanelPolls(logging.Filter):
+    """panel.py polls /api/state 10x a second from localhost: keep those out of the journal."""
+    def filter(self, record):
+        msg = record.getMessage()
+        return not (msg.startswith("127.0.0.1 ") and "GET /api/state " in msg)
+
+
+logging.getLogger("werkzeug").addFilter(_QuietPanelPolls())
+
 settings = load_settings()
 presets = PresetStore(settings)
 ctl = Controller(settings, presets)
@@ -156,6 +166,8 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, shutdown)
     signal.signal(signal.SIGINT, shutdown)
     WSGIRequestHandler.timeout = 15  # drop stalled clients instead of tying up threads
+    if settings.get("autostart"):
+        ctl.start()  # receiver errors are reported in the state, not raised
     srv = settings["server"]
     log.info("listening on http://%s:%d/", srv["host"], srv["port"])
     app.run(host=srv["host"], port=int(srv["port"]), threaded=True, use_reloader=False)
