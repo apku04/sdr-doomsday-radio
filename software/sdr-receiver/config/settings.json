@@ -27,6 +27,7 @@
   "autostart": true,
   "autostart_scan": true,
   "heard_log": {"file": "data/heard.jsonl", "min_s": 1.0, "max_entries": 500},
+  "recording": {"enabled": true, "dir": "data/rec", "keep_days": 30, "max_mb": 1024},
   "speaker": {
     "_doc": "Local audio (sdr/speaker.py): first present device wins; USB speaker, else the 3.5 mm jack (PHONES).",
     "enabled": true,

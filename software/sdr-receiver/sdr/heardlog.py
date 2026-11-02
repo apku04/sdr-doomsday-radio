@@ -4,10 +4,12 @@ A watcher thread samples the receiver 5x a second. A transmission starts when th
 opens (Receiver.activity(): running, squelch set, open; monitor excluded) and ends after
 GAP_S without activity or when the frequency changes (scanner hop, manual tuning).
 Openings shorter than min_s are noise blips and are not logged. Entries are appended to
-a JSON-lines file and the newest max_entries are kept in memory.
+a JSON-lines file and the newest max_entries are kept in memory. With a Recorder, the audio
+of each logged transmission is saved too (entry["audio"] = WAV file name).
 """
 import json
 import logging
+import queue
 import threading
 import time
 from pathlib import Path
@@ -19,8 +21,9 @@ POLL_S = 0.2
 
 
 class HeardLog:
-    def __init__(self, path, min_s=1.0, max_entries=500):
+    def __init__(self, path, min_s=1.0, max_entries=500, recorder=None):
         self.path = Path(path)
+        self.rec = recorder
         self.min_s, self.max_entries = float(min_s), int(max_entries)
         self.entries = []
         self.cur = None         # open transmission
@@ -72,17 +75,29 @@ class HeardLog:
                 if c is None:
                     c = self.cur = {"t": wall, "start": now, "last": now, "peak_db": level_db,
                                     **{k: where[k] for k in ("band", "freq_mhz", "name")}}
+                    if self.rec:
+                        self.rec.start(wall, where["freq_mhz"])
                 c["last"] = now
                 if level_db is not None and (c["peak_db"] is None or level_db > c["peak_db"]):
                     c["peak_db"] = level_db
         return closed
 
+    def feed(self, rate, pcm):
+        """Audio from the receiver (only arrives while the squelch is open)."""
+        with self._lock:
+            if self.cur is not None and self.rec:
+                self.rec.write(rate, pcm)
+
     def _close(self, c):
         dur = c["last"] - c["start"]
-        if dur < self.min_s:
+        keep = dur >= self.min_s
+        audio = self.rec.finish(keep) if self.rec else None
+        if not keep:
             return None
         e = {"t": round(c["t"], 1), "band": c["band"], "freq_mhz": c["freq_mhz"], "name": c["name"],
              "dur_s": round(dur, 1), "peak_db": None if c["peak_db"] is None else round(c["peak_db"], 1)}
+        if audio:
+            e["audio"] = audio
         self._append(e)
         return e
 
@@ -122,14 +137,26 @@ class HeardLog:
             return {"band": ctl.band, "freq_mhz": ctl.freq_hz / 1e6,
                     "name": p["name"] if p else f"{ctl.freq_hz / 1e6:.4f} MHz"}
 
+        audio_in = ctl.rx.subscribe(10 ** 6) if self.rec else None     # not counted as a web client
+
         def run():
+            next_prune = 0.0
             while True:
                 try:
+                    if self.rec and time.monotonic() >= next_prune:
+                        next_prune = time.monotonic() + 3600
+                        self.rec.prune()            # age limit applies even when nothing is heard
                     w = where()
                     active = bool(w) and ctl.rx.activity() and not ctl.monitor
                     e = self.update(time.monotonic(), time.time(), active, w, ctl.rx.level_db)
                     if e:
                         log.info("heard %s %.4f MHz for %.0f s", e["name"], e["freq_mhz"], e["dur_s"])
+                    while audio_in is not None:
+                        try:
+                            rate, pcm = audio_in.q.get_nowait()
+                        except queue.Empty:
+                            break
+                        self.feed(rate, pcm)
                 except Exception:  # noqa: BLE001 - the log must never take the receiver down
                     log.exception("heard log watcher")
                 time.sleep(POLL_S)

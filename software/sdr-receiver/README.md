@@ -207,6 +207,11 @@ monitor excluded) is logged with time, channel, length and peak level to `data/h
 there; home screen shows `LAST hh:mm CALLSIGN`), web page `http://<pi>:8080/heard`, JSON
 `/api/heard?n=100`. At boot the receiver starts and scans (`autostart`, `autostart_scan`).
 
+Recording (`sdr/recorder.py`, settings `recording`): each logged transmission is also saved
+as a 16-bit mono WAV in `data/rec/` (raw audio, before the volume knob; ~2 MB per minute)
+and gets a player on `/heard` (main page: **Heard log** button). Files older than 30 days
+are deleted, then the oldest until the total is under 1 GB.
+
 ## Test results (2026-10-26)
 
 **Verified**

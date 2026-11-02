@@ -15,6 +15,7 @@ from werkzeug.serving import WSGIRequestHandler
 from sdr.config import BASE_DIR, load_settings
 from sdr.controller import ControlError, Controller
 from sdr.heardlog import HeardLog
+from sdr.recorder import Recorder
 from sdr.presets import PresetError, PresetStore
 from sdr.receiver import TooManyListeners
 
@@ -40,7 +41,11 @@ if settings.get("speaker", {}).get("enabled"):
     speaker = Speaker(ctl, settings["speaker"])
 
 _hl = settings.get("heard_log", {})
-heard = HeardLog(BASE_DIR / _hl.get("file", "data/heard.jsonl"), _hl.get("min_s", 1.0), _hl.get("max_entries", 500))
+_rc = settings.get("recording", {})
+recorder = (Recorder(BASE_DIR / _rc.get("dir", "data/rec"), _rc.get("keep_days", 30), _rc.get("max_mb", 1024))
+            if _rc.get("enabled") else None)
+heard = HeardLog(BASE_DIR / _hl.get("file", "data/heard.jsonl"), _hl.get("min_s", 1.0), _hl.get("max_entries", 500),
+                 recorder)
 
 app = Flask(__name__, static_folder=str(BASE_DIR / "static"), static_url_path="/static")
 app.config["MAX_CONTENT_LENGTH"] = 4096
@@ -93,26 +98,42 @@ def api_heard():
     return jsonify({"heard": heard.recent(n)})
 
 
+@app.get("/heard/rec/<name>")
+def heard_rec(name):
+    p = recorder.path_of(name) if recorder else None
+    if p is None:
+        return bad("no such recording", 404)
+    return send_from_directory(p.parent, p.name, mimetype="audio/wav", conditional=True)
+
+
 @app.get("/heard")
 def heard_page():
-    """Plain table of the heard log (no JavaScript; refreshes itself every 30 s)."""
+    """Plain table of the heard log with a player per recording (no JavaScript, no auto-refresh:
+    a refresh would cut off playback)."""
     rows = []
     for e in heard.recent(500):
         t = time.strftime("%a %d %b %H:%M:%S", time.localtime(e["t"]))
         dur = f"{int(e['dur_s'] // 60)}:{int(e['dur_s'] % 60):02d}"
         live = " <b>(now)</b>" if e.get("live") else ""
         peak = "" if e["peak_db"] is None else f"{e['peak_db']:.0f}"
+        audio = ""
+        if e.get("audio") and recorder and recorder.path_of(e["audio"]):
+            audio = f'<audio controls preload="none" src="/heard/rec/{e["audio"]}"></audio>'
+        elif e.get("audio"):
+            audio = '<span class="dim">deleted (older than the limit)</span>'
         rows.append(f"<tr><td>{t}{live}</td><td>{html.escape(e['name'])}</td>"
-                    f"<td>{e['freq_mhz']:.4f}</td><td>{dur}</td><td>{peak}</td></tr>")
-    body = "".join(rows) or '<tr><td colspan="5">Nothing heard yet.</td></tr>'
+                    f"<td>{e['freq_mhz']:.4f}</td><td>{dur}</td><td>{peak}</td><td>{audio}</td></tr>")
+    body = "".join(rows) or '<tr><td colspan="6">Nothing heard yet.</td></tr>'
     page = (
-        '<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="30">'
+        '<!DOCTYPE html><html><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1"><title>RX-1 heard log</title>'
         "<style>body{font:15px system-ui,sans-serif;margin:1em}table{border-collapse:collapse}"
-        "td,th{padding:.3em .7em;border-bottom:1px solid #ccc;text-align:left}</style></head><body>"
-        '<h2>Heard log</h2><p><a href="/">back to the receiver</a> &middot; newest first, '
-        "updates every 30 s</p><table><tr><th>When</th><th>Channel</th><th>MHz</th>"
-        f"<th>Length</th><th>Peak dBFS</th></tr>{body}</table></body></html>")
+        "td,th{padding:.3em .7em;border-bottom:1px solid #ccc;text-align:left}.dim{color:#888}"
+        "audio{height:32px;vertical-align:middle}</style></head><body>"
+        '<h2>Heard log</h2><p><a href="/">back to the receiver</a> &middot; newest first &middot; '
+        '<a href="/heard">refresh</a> &middot; recordings kept 30 days / 1 GB</p>'
+        "<table><tr><th>When</th><th>Channel</th><th>MHz</th>"
+        f"<th>Length</th><th>Peak dBFS</th><th>Recording</th></tr>{body}</table></body></html>")
     return Response(page, mimetype="text/html")
 
 
