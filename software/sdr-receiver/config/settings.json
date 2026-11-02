@@ -20,7 +20,7 @@
     "vhf": {"label": "2 m amateur", "min_mhz": 144.0, "max_mhz": 146.0, "mode": "nfm",
             "default_mhz": 145.5, "steps_khz": [12.5, 25, 6.25, 100, 1000], "squelch_db": -25, "gain": 40.2},
     "uhf": {"label": "70 cm amateur", "min_mhz": 430.0, "max_mhz": 440.0, "mode": "nfm",
-            "default_mhz": 433.5, "steps_khz": [12.5, 25, 6.25, 100, 1000], "squelch_db": -52, "gain": 40.2},
+            "default_mhz": 433.5, "steps_khz": [12.5, 25, 6.25, 100, 1000], "squelch_db": -46, "gain": 40.2},
     "fm":  {"label": "FM broadcast", "min_mhz": 87.5, "max_mhz": 108.0, "mode": "wfm",
             "default_mhz": 104.0, "steps_khz": [100, 50, 1000], "squelch_db": null, "gain": 22.9}
   },
