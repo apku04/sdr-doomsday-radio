@@ -31,6 +31,10 @@ logging.getLogger("werkzeug").addFilter(_QuietPanelPolls())
 settings = load_settings()
 presets = PresetStore(settings)
 ctl = Controller(settings, presets)
+speaker = None
+if settings.get("speaker", {}).get("enabled"):
+    from sdr.speaker import Speaker
+    speaker = Speaker(ctl, settings["speaker"])
 
 app = Flask(__name__, static_folder=str(BASE_DIR / "static"), static_url_path="/static")
 app.config["MAX_CONTENT_LENGTH"] = 4096
@@ -68,7 +72,9 @@ def api_config():
 
 @app.get("/api/state")
 def api_state():
-    return jsonify(ctl.state())
+    st = ctl.state()
+    st["speaker"] = speaker.info() if speaker else None
+    return jsonify(st)
 
 
 @app.post("/api/action")
@@ -166,6 +172,8 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, shutdown)
     signal.signal(signal.SIGINT, shutdown)
     WSGIRequestHandler.timeout = 15  # drop stalled clients instead of tying up threads
+    if speaker:
+        speaker.start()
     if settings.get("autostart"):
         ctl.start()  # receiver errors are reported in the state, not raised
     srv = settings["server"]

@@ -25,6 +25,13 @@
             "default_mhz": 104.0, "steps_khz": [100, 50, 1000], "squelch_db": null, "gain": 22.9}
   },
   "autostart": true,
+  "speaker": {
+    "_doc": "Local audio (sdr/speaker.py): first present device wins; USB speaker, else the 3.5 mm jack (PHONES).",
+    "enabled": true,
+    "devices": ["plughw:CARD=Audio,DEV=0", "plughw:CARD=Headphones,DEV=0"],
+    "mixer_percent": 100,
+    "buffer_ms": 300
+  },
   "panel": {
     "_doc": "Front panel (panel.py). BCM pins = hardware/lib/contract.py PI_BCM. rest: A/B states at a detent, (0,3) = KY-040.",
     "gpiochip": 0,
