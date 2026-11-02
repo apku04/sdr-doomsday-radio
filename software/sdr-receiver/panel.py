@@ -265,6 +265,8 @@ class Panel:
             ui = self.ensure_ui()
             if ui.screen == "main" and ui.MAIN[ui.sel] == "PRESETS":
                 ui.presets = self.api.get("/api/presets")["presets"]
+            if ui.screen == "main" and ui.MAIN[ui.sel] == "HEARD":
+                ui.heard = self.api.get("/api/heard?n=100")["heard"]
             self.run(ui.push(st, time.monotonic()))
         elif action == "ui:back":
             self.run(self.ensure_ui().back(st, time.monotonic()))

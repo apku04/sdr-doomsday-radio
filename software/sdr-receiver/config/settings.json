@@ -25,6 +25,8 @@
             "default_mhz": 104.0, "steps_khz": [100, 50, 1000], "squelch_db": null, "gain": 22.9}
   },
   "autostart": true,
+  "autostart_scan": true,
+  "heard_log": {"file": "data/heard.jsonl", "min_s": 1.0, "max_entries": 500},
   "speaker": {
     "_doc": "Local audio (sdr/speaker.py): first present device wins; USB speaker, else the 3.5 mm jack (PHONES).",
     "enabled": true,
@@ -53,7 +55,7 @@
       "menu_push": {"pin": 21, "press": "ui:push"},
       "scan":      {"pin": 17, "press": "scan"},
       "manual":    {"pin": 4,  "press": "manual"},
-      "q1":        {"pin": 26, "press": null},
+      "q1":        {"pin": 26, "press": "preset:f-095900"},
       "q2":        {"pin": 18, "press": "preset:v-145725"},
       "back":      {"pin": 7,  "press": "ui:back"}
     },
@@ -61,7 +63,7 @@
     "leds": {"scan": 14, "sig": 15, "man": 8, "2m": 9, "70cm": 10, "fm": 11}
   },
   "band_order": ["vhf", "uhf", "fm"],
-  "initial_band": "fm",
+  "initial_band": "vhf",
   "squelch_min_db": -90,
   "squelch_max_db": 0,
   "scan": {

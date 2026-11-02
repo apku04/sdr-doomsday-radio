@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
 """HTTP front end: static UI, JSON control API and the PCM audio stream."""
 import atexit
+import html
 import logging
 import queue
 import signal
 import struct
 import sys
+import time
 
 from flask import Flask, Response, jsonify, request, send_from_directory
 from werkzeug.serving import WSGIRequestHandler
 
 from sdr.config import BASE_DIR, load_settings
 from sdr.controller import ControlError, Controller
+from sdr.heardlog import HeardLog
 from sdr.presets import PresetError, PresetStore
 from sdr.receiver import TooManyListeners
 
@@ -35,6 +38,9 @@ speaker = None
 if settings.get("speaker", {}).get("enabled"):
     from sdr.speaker import Speaker
     speaker = Speaker(ctl, settings["speaker"])
+
+_hl = settings.get("heard_log", {})
+heard = HeardLog(BASE_DIR / _hl.get("file", "data/heard.jsonl"), _hl.get("min_s", 1.0), _hl.get("max_entries", 500))
 
 app = Flask(__name__, static_folder=str(BASE_DIR / "static"), static_url_path="/static")
 app.config["MAX_CONTENT_LENGTH"] = 4096
@@ -74,7 +80,40 @@ def api_config():
 def api_state():
     st = ctl.state()
     st["speaker"] = speaker.info() if speaker else None
+    st["heard"] = heard.summary(time.time())
     return jsonify(st)
+
+
+@app.get("/api/heard")
+def api_heard():
+    try:
+        n = max(1, min(500, int(request.args.get("n", 100))))
+    except ValueError:
+        return bad("n must be a number")
+    return jsonify({"heard": heard.recent(n)})
+
+
+@app.get("/heard")
+def heard_page():
+    """Plain table of the heard log (no JavaScript; refreshes itself every 30 s)."""
+    rows = []
+    for e in heard.recent(500):
+        t = time.strftime("%a %d %b %H:%M:%S", time.localtime(e["t"]))
+        dur = f"{int(e['dur_s'] // 60)}:{int(e['dur_s'] % 60):02d}"
+        live = " <b>(now)</b>" if e.get("live") else ""
+        peak = "" if e["peak_db"] is None else f"{e['peak_db']:.0f}"
+        rows.append(f"<tr><td>{t}{live}</td><td>{html.escape(e['name'])}</td>"
+                    f"<td>{e['freq_mhz']:.4f}</td><td>{dur}</td><td>{peak}</td></tr>")
+    body = "".join(rows) or '<tr><td colspan="5">Nothing heard yet.</td></tr>'
+    page = (
+        '<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="30">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1"><title>RX-1 heard log</title>'
+        "<style>body{font:15px system-ui,sans-serif;margin:1em}table{border-collapse:collapse}"
+        "td,th{padding:.3em .7em;border-bottom:1px solid #ccc;text-align:left}</style></head><body>"
+        '<h2>Heard log</h2><p><a href="/">back to the receiver</a> &middot; newest first, '
+        "updates every 30 s</p><table><tr><th>When</th><th>Channel</th><th>MHz</th>"
+        f"<th>Length</th><th>Peak dBFS</th></tr>{body}</table></body></html>")
+    return Response(page, mimetype="text/html")
 
 
 @app.post("/api/action")
@@ -172,10 +211,16 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, shutdown)
     signal.signal(signal.SIGINT, shutdown)
     WSGIRequestHandler.timeout = 15  # drop stalled clients instead of tying up threads
+    heard.watch(ctl)
     if speaker:
         speaker.start()
     if settings.get("autostart"):
         ctl.start()  # receiver errors are reported in the state, not raised
+        if settings.get("autostart_scan"):
+            try:
+                ctl.scan_start()
+            except ControlError as e:
+                log.warning("autostart scan: %s", e)
     srv = settings["server"]
     log.info("listening on http://%s:%d/", srv["host"], srv["port"])
     app.run(host=srv["host"], port=int(srv["port"]), threaded=True, use_reloader=False)

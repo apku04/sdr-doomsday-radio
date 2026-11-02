@@ -71,6 +71,8 @@ for _k, _b in CONFIG["bands"].items():
     _b.update(label=_k.upper() + " band", steps_khz=[12.5, 25] if _k != "fm" else [100, 1000])
 
 PRESETS = [{"id": "v-1", "band": "vhf", "name": "V one"}, {"id": "u-1", "band": "uhf", "name": "U one"}]
+HEARD = [{"t": 1793650000, "band": "uhf", "freq_mhz": 434.9875, "name": "OZ9REZ Randers (16 km)", "dur_s": 65,
+          "peak_db": -30}]
 
 
 def state(**kw):
@@ -87,7 +89,8 @@ class FakeApi:
         self.st, self.calls = st, []
 
     def get(self, path):
-        return {"/api/config": CONFIG, "/api/presets": {"presets": PRESETS}}.get(path, self.st)
+        return {"/api/config": CONFIG, "/api/presets": {"presets": PRESETS},
+                "/api/heard?n=100": {"heard": HEARD}}.get(path, self.st)
 
     def action(self, action, value=None):
         self.calls.append((action, value))
@@ -142,7 +145,7 @@ class PanelTest(unittest.TestCase):
     def test_menu_edit_volume_and_contrast(self):
         p, api = self.mk(volume=40)
         p.turn("menu", 1)
-        p.turn("menu", 4)                       # BAND PRESETS SCAN STEP -> VOLUME
+        p.turn("menu", 5)                       # BAND PRESETS SCAN HEARD STEP -> VOLUME
         p.button("menu_push", "press")
         self.assertEqual(p.ui.screen, "edit")
         p.turn("menu", 2)
@@ -165,6 +168,17 @@ class PanelTest(unittest.TestCase):
         p.button("menu_push", "press")
         self.assertEqual(api.calls, [("preset", "u-1")])
 
+    def test_menu_heard_list_tunes_to_entry(self):
+        p, api = self.mk()
+        p.turn("menu", 1)
+        p.turn("menu", 3)                       # HEARD
+        p.button("menu_push", "press")
+        self.assertEqual(p.ui.screen, "list")
+        self.assertIn("OZ9REZ", p.ui.list["items"][0][0])
+        self.assertTrue(p.ui.list["items"][0][0].endswith("1:05"))
+        p.button("menu_push", "press")
+        self.assertEqual(api.calls, [("band", "uhf"), ("freq", 434.9875)])
+
     def test_menu_toggles_and_scrolls_with_wrap(self):
         p, api = self.mk()
         p.turn("menu", 1)
@@ -184,7 +198,10 @@ class PanelTest(unittest.TestCase):
         u.presets = PRESETS
         sts = [state(), state(band="fm", freq_mhz=104.0, step_khz=100, squelch_db=None, level_db=-40),
                state(level_db=-20, squelch_open=True, preset={"id": "v-1", "name": "OZ3RED Randers (16 km)"}),
-               state(scan={"state": "holding", "index": 3, "total": 12, "hits": 2}, error="boom")]
+               state(scan={"state": "holding", "index": 3, "total": 12, "hits": 2}, error="boom",
+                     heard={"today": 3, "last": dict(HEARD[0], live=True)}),
+               state(heard={"today": 1, "last": HEARD[0]})]
+        u.heard = HEARD
         for st in sts:
             u.screen = "home"
             self.assertTrue(any(u.render(st, 0).buf))

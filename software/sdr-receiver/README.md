@@ -183,9 +183,9 @@ Pins and mapping: `config/settings.json` → `panel`. OLED: `oled.py` (SH1107 dr
 | VOL turn / push | volume ± 5 % / mute toggle (turning unmutes) |
 | SQL turn / push | squelch ± 2 dB (fully left = off) / monitor (squelch open) |
 | MENU turn / push | opens the OLED menu; in it: move or change value / select, edit, confirm |
-| SCAN · MANUAL | scan on/off · stop scan and listen |
+| SCAN · MANUAL | start scan / skip a held channel · stop scan and listen |
 | BACK | menu: up one level (main menu → home screen). Idle 20 s → home |
-| Q2 · Q1 | preset OZ3RED Randers · unassigned |
+| RANDERS (Q2) · DR P4 (Q1) | preset OZ3RED 145.725 · preset 95.9 MHz (not receivable here: pending the right station) |
 
 | LED | Meaning |
 |---|---|
@@ -198,6 +198,14 @@ Knob direction: `encoders.<knob>.invert`. If a knob counts once per two clicks s
 `rest` to `[0]` or `[3]` (the A/B state it rests at). Tests: `python -m unittest discover -s tests`.
 Logs: `journalctl -u sdr-panel -f`. The pin tester (`~/panel-test`) needs the panel service
 stopped first: `sudo systemctl stop sdr-panel`.
+
+## Heard log (`sdr/heardlog.py`)
+
+Every squelch opening of 1 s or more on an analogue channel (scanning or not; FM broadcast and
+monitor excluded) is logged with time, channel, length and peak level to `data/heard.jsonl`
+(newest 500 kept, survives reboots). View: OLED **MENU → HEARD** (push an entry to tune
+there; home screen shows `LAST hh:mm CALLSIGN`), web page `http://<pi>:8080/heard`, JSON
+`/api/heard?n=100`. At boot the receiver starts and scans (`autostart`, `autostart_scan`).
 
 ## Test results (2026-10-26)
 

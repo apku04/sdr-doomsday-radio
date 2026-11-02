@@ -7,6 +7,8 @@ level (and from the main menu home). After IDLE_S without input the home screen 
 Every input method returns a list of actions: (api_action, value) tuples that panel.py
 sends to app.py, or ("local", name, value) for panel-only settings (contrast).
 """
+import time
+
 from oled import Frame, text_width
 
 IDLE_S = 20.0
@@ -39,6 +41,30 @@ def wrap(text, width, max_lines):
     return lines[:max_lines]
 
 
+def hhmm(epoch):
+    return time.strftime("%H:%M", time.localtime(epoch))
+
+
+def short_name(e):
+    """'OZ3RED Randers (16 km)' -> 'OZ3RED'; plain frequencies stay as MHz."""
+    name = e.get("name") or ""
+    if name.startswith("OZ"):
+        return name.split()[0]
+    if "calling" in name.lower():
+        return BAND_SHORT.get(e.get("band"), "") + " CALL"
+    return f"{e['freq_mhz']:.3f}"
+
+
+def heard_label(e):
+    """One 21-char menu row: '20:14 OZ3RED     1:05' (date instead of time if not today)."""
+    lt = time.localtime(e["t"])
+    when = time.strftime("%H:%M", lt) if lt[:3] == time.localtime()[:3] else time.strftime("%d/%m", lt)
+    d = int(e["dur_s"])
+    dur = "NOW" if e.get("live") else (f"{d}S" if d < 60 else f"{d // 60}:{d % 60:02d}")
+    left = f"{when} {short_name(e)}"
+    return left[:20 - len(dur)].ljust(20 - len(dur)) + " " + dur
+
+
 def fmt_step(khz):
     return f"{khz:g}K" if khz < 1000 else f"{khz / 1000:g}M"
 
@@ -52,7 +78,7 @@ def fmt_gain(g):
 
 
 class Ui:
-    MAIN = ["BAND", "PRESETS", "SCAN", "STEP", "VOLUME", "SQUELCH", "GAIN", "RECEIVER", "CONTRAST", "INFO"]
+    MAIN = ["BAND", "PRESETS", "SCAN", "HEARD", "STEP", "VOLUME", "SQUELCH", "GAIN", "RECEIVER", "CONTRAST", "INFO"]
 
     def __init__(self, config, contrast=8, info=lambda: []):
         self.cfg = config                 # /api/config
@@ -65,6 +91,7 @@ class Ui:
         self.edit = None                  # {"item", "value"}
         self.last_input = 0.0
         self.presets = []                 # filled by panel.py before PRESETS opens
+        self.heard = []                   # filled by panel.py before HEARD opens (newest first)
 
     # -- helpers --------------------------------------------------------------
 
@@ -80,6 +107,9 @@ class Ui:
             return BAND_SHORT.get(st["band"], st["band"].upper())
         if item == "SCAN":
             return "ON" if st["scan"]["state"] != "off" else "OFF"
+        if item == "HEARD":
+            h = st.get("heard") or {}
+            return f"{h.get('today', 0)} TODAY"
         if item == "STEP":
             return fmt_step(st["step_khz"])
         if item == "VOLUME":
@@ -181,6 +211,10 @@ class Ui:
         elif item == "GAIN":
             gains = self.cfg["gains"]
             self._open_list("GAIN", [(fmt_gain(g), g) for g in gains], st["gain"], lambda g: [("gain", g)])
+        elif item == "HEARD":
+            items = [(heard_label(e), e) for e in self.heard] or [("NOTHING HEARD YET", None)]
+            self._open_list("HEARD  (PUSH = TUNE)", items, None,
+                            lambda e: [("band", e["band"]), ("freq", e["freq_mhz"])] if e else [])
         elif item == "SCAN":
             return [("scan_toggle", None)]
         elif item == "RECEIVER":
@@ -288,10 +322,18 @@ class Ui:
         sqtxt = "MON" if st["monitor"] else fmt_sq(st["squelch_db"])
         right = f"SQL {sqtxt}"
         f.text(128 - text_width(right), 86, right)
+        # Line 98: last transmission heard ("LAST 20:14 OZ3RED"), or scan position + last time.
+        last = (st.get("heard") or {}).get("last")
         if scan != "off":
             s = st["scan"]
-            f.text(0, 98, f"SCAN {s['index']}/{s['total']}  HITS {s['hits']}")
+            line = f"SCAN {s['index']}/{s['total']}"
+            if last:
+                line += "  LAST " + ("NOW" if last.get("live") else hhmm(last["t"]))
+            f.text(0, 98, line)
             hint = "SCAN=SKIP MANUAL=STOP" if scan in ("activity", "holding", "paused") else "MANUAL=STOP"
             f.text(0, 107, hint)
+        elif last:
+            when = "NOW" if last.get("live") else hhmm(last["t"])
+            f.text(0, 98, f"LAST {when} {short_name(last)}"[:21])
         f.hline(0, 116, 128)
         f.text(2, 119, "MENU: OPTIONS")

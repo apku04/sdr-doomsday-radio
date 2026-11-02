@@ -221,6 +221,17 @@
       "notes": "DMR+."
     },
     {
+      "id": "f-095900",
+      "name": "DR P4 Østjylland",
+      "band": "fm",
+      "freq_mhz": 95.9,
+      "digital": null,
+      "verification": "listed",
+      "enabled": false,
+      "source": "streema.com / mytuner-radio.com FM lists, 2026-11-02",
+      "notes": "Panel button DR P4 (q1)."
+    },
+    {
       "id": "f-104000",
       "name": "104.0 MHz (station not identified)",
       "band": "fm",
